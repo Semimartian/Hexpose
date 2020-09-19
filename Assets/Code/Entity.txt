@@ -1,0 +1,207 @@
+﻿using System;
+//using System.Collections;
+//using System.Collections.Generic;
+using UnityEngine;
+
+/*using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using PathFinding;*/
+
+public abstract class Entity 
+{
+    protected byte playerIndex;
+    public byte PlayerIndex
+    {
+        get { return playerIndex; }
+    }
+    public EntityComponent component;
+    //public static Entity[] EntityDataArray;
+    /*static Entity()
+    {
+        EntityDataArray[GetEntityType()]
+    }*/
+
+    protected Entity(Hex hex, byte playerIndex)
+    {
+        this.playerIndex = playerIndex;
+        SetHex(hex);
+        this.component = HexMap.InstantiateComponent(this);
+        HexMap.AddEntity(this);
+    }
+
+    public virtual void KillSelf()
+    {
+        //TODO: make sure there aint no memory leak
+        Hex.RemoveEntity(this);
+        HexMap.RemoveEntity(this);//TODO: make HexMap entities private
+        GameObject.Destroy(component.gameObject);
+        Debug.Log("DEATH");
+    }
+
+    protected Entity(){ }//For statics..
+
+    public Hex Hex { get; protected set; }
+    public void SetHex(Hex hex)
+    {
+        if (Hex != null)
+        {
+            Hex.RemoveEntity(this);
+        }
+        if (hex != null)
+        {
+            hex.AddEntity(this);
+        }
+
+        Hex = hex;
+    }
+
+    public virtual EntityTypes GetEntityType()
+    {
+        return EntityTypes.NULL;
+    }
+
+    public virtual bool CanBuildOn(Hex hex, byte builderIndex)
+    {
+        //TODO: Ownership check?
+        return true;
+    }
+   // private static Entity entityData;
+    public virtual Entity EntityIdea()
+    {
+        return null;// entityData; 
+    }
+
+    public virtual int Price
+    {
+       get { return 0; }
+    }
+
+    public static Entity GetEntityIdea(EntityTypes type)
+    {
+        switch (type)
+        {
+            case EntityTypes.MILITARY_UNIT:
+                return MilitaryUnit.militaryUnitIdea;
+            case EntityTypes.VILLAGE:
+                return Village.villageIdea;
+            case EntityTypes.TOWN:
+                return Town.townIdea;
+            case EntityTypes.CITY:
+                return City.cityIdea;
+            case EntityTypes.MISSIONARY://todo: mISSIONARY DOES NOT EXIST YET..
+                return MilitaryUnit.militaryUnitIdea;
+        }
+        return null;
+    }
+   
+    #region Unused Helper Functions:
+    public static EntityTypes ConvertToEntityType(Type type)
+    {
+        if(type == typeof(Entity))
+        {
+            if (type == typeof(Village))
+            {
+                return EntityTypes.VILLAGE;
+            }
+            else if (type == typeof(Town))
+            {
+                return EntityTypes.TOWN;
+            }
+            else if (type == typeof(City))
+            {
+                return EntityTypes.CITY;
+            }
+            else if (type == typeof(MilitaryUnit))
+            {
+                return EntityTypes.MILITARY_UNIT;
+            }
+        }
+
+         Debug.LogError("Type sent is not a valid entity!");
+         return EntityTypes.NULL;
+    }
+
+    public static EntityTypes GetEntityType(Entity entity)
+    {
+        if (entity is Village)
+        {
+            return EntityTypes.VILLAGE;
+        }
+        else if (entity is Town)
+        {
+            return EntityTypes.TOWN;
+        }
+        else if (entity is City)
+        {
+            return EntityTypes.CITY;
+        }
+        else if (entity is MilitaryUnit)
+        {
+            return EntityTypes.MILITARY_UNIT;
+        }
+
+        Debug.LogError("Type sent is not a valid entity!");
+        return EntityTypes.NULL;
+    }
+    #endregion
+    public static void Spawn(EntityTypes type, Hex hex, byte playerIndex)
+    {//TODO: theres got to be a better way...
+
+        Entity entityIdea = GetEntityIdea(type);
+        entityIdea.CreateImitation(hex, playerIndex);
+    }
+
+    /*public static void Spawn<T>(T type, Hex hex, byte playerIndex) where T: Entity
+    {//TODO: theres got to be a better way...
+
+        //Entity entityIdea = GetEntityIdea(type);
+       // entityIdea.CreateImitation(hex, playerIndex);
+        Entity entityIdea = type.EntityIdea();
+        type.CreateImitation(hex, playerIndex);
+    }*/
+
+    public virtual void CreateImitation(Hex hex, byte playerIndex)
+    {
+        Debug.LogError("Trying to instantiate Entity!");
+    }
+
+    public virtual void ChangeOwner(byte playerIndex)
+    {
+        byte previousPlayerIndex = this.playerIndex;
+        this.playerIndex = playerIndex;
+        //TODO: Remove:
+      /*  GameManager.DetermineAndSetPlayerTerritory(previousPlayerIndex);//TODO: move to settement
+        GameManager.DetermineAndSetPlayerTerritory(playerIndex);*/
+
+        HexMap.RePaintEntity(this);
+    }
+}
+
+public enum EntityTypes
+{
+   NULL=0, MILITARY_UNIT, VILLAGE, TOWN, CITY, MISSIONARY 
+}
+
+[Serializable]
+public class EntityData
+{
+    [SerializeField] private EntityTypes type;
+    public EntityTypes Type
+    {
+        get { return type; }
+    }
+    /*[SerializeField] private int price;
+    public int Price
+    {
+        get { return price; }
+    }*/
+    [SerializeField] private EntityComponent componentPreFab;
+    public EntityComponent ComponentPreFab
+    {
+        get { return componentPreFab; }
+    }
+
+    //[SerializeField] private Entity type;
+
+}

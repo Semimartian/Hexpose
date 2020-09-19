@@ -1,0 +1,486 @@
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MouseController : MonoBehaviour
+{
+
+    [SerializeField] private float movementSpeed;
+    //Generic BookKeeping variables:
+    private Vector3 lastMousePosition;
+    //Camera Dragging BookKeeping variables:
+    [SerializeField] private int mouseDragThreshold = 1;
+    private Vector3 lastMouseGroundPlanePosition;
+    //Unit Control:
+    [SerializeField] private GameObject unitSelectionPanel;
+    // private static Entity _selectedEntity = null;
+    private static List<Unit> selectedUnits = new List<Unit>();
+    private static EntityTypes selectedEntityType = EntityTypes.NULL;
+    public static Action<EntityTypes> OnEntitySelected;
+    private static bool waitingForInteractionSelection;
+    [SerializeField] private GameObject interactionSelectionPanel;
+
+    private static List< InteractionNode> potentialInteractions;
+    private static List<Hex> potentialHexes;
+    private static List<GameObject> hexHighLights = new List<GameObject>();
+
+    private static MouseController instance;
+
+    void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Debug.LogError("Tried to instantiate more than singleton!");
+            return;
+        }
+    }
+
+   /* public static Entity SelectedEntity
+    {
+        get { return _selectedEntity; }
+        private set
+        {
+            _selectedEntity = value;
+            //unitSelectionPanel.SetActive(_selectedEntity != null);
+            if(_selectedEntity != null)
+            {
+                Debug.Log(" selectedUnit = " + _selectedEntity == null ? "null" : _selectedEntity.ToString());
+            }
+        }
+    }*/
+
+    public static void SelectInteraction(InteractionTypes type)
+    {
+        GameManager.PerformInteraction(type);
+        instance.interactionSelectionPanel.SetActive( false);
+        waitingForInteractionSelection = false;
+    }
+
+    public static void EnterInteractionSelectionMode(List<Interaction> interactions)
+    {
+        //FIX:
+
+        instance.interactionSelectionPanel.SetActive(true);
+        foreach(InteractionSelectionButton button in 
+                instance.interactionSelectionPanel.transform.GetComponentsInChildren<InteractionSelectionButton>())
+        {
+            if (button.InteractionType == InteractionTypes.NULL)
+            {
+                button.gameObject.SetActive(true);
+            }
+            else
+            {
+                bool foundInteraction = false;
+                foreach (Interaction interaction in interactions)
+                {
+
+                    if (interaction.interactionType == button.InteractionType)
+                    {
+                        foundInteraction = true;
+                    }
+                }
+                button.gameObject.SetActive(foundInteraction);
+            }
+
+        }
+        waitingForInteractionSelection = true;
+    }
+
+    public static void SelectEntityType(EntityTypes type)
+    {
+        if(GameManager.TurnState!= TurnStates.CONSTRUCTION)
+        {
+            Debug.LogWarning("Tried to select entity type while TurnState!= TurnStates.CONSTRUCTION");
+            return;
+        }
+        else if(type == selectedEntityType)
+        {
+            Debug.LogWarning("Tried to select  while same entity was alredy selectd");
+            return;
+        }
+        selectedEntityType = type;
+        potentialHexes = GameManager.GetHexesFitForConstructionOf(type);
+        DrawHexHighLights();
+        OnEntitySelected(type);
+    }
+
+    private Hex[] hexPath;
+    [SerializeField] private LineRenderer lineRenderer;
+
+    private Hex hexUnderMouse;
+    private Hex lastHexUnderMouse;
+
+    [SerializeField] private GameObject hexHighlight;
+
+    delegate void UpdateFunc();
+    UpdateFunc Update_CurrentFunc;
+    //public static event Action OnActionTaken;
+
+    private Transform cameraTransform;
+    private Vector3 previousCameraPosition;
+    private Vector3 cameraAnchor;
+
+    private void Start()
+    {
+        cameraTransform = Camera.main.transform;
+        Update_CurrentFunc = Update_DetectModeStart;
+        // GameManager.OnTurnEnded +=  CancelUpdateFunc;
+        GameManager.OnTurnStateChanged += (delegate () { CancelUpdateFunc(true); });
+    }
+
+    private void Update()
+    {
+        if (waitingForInteractionSelection)
+        {
+
+        }
+        else
+        {
+            hexUnderMouse = MouseToHex();
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                // SelectedUnit = null;
+                CancelUpdateFunc();
+            }
+            //Debug.Log(Update_CurrentFunc.ToString());
+            Update_CurrentFunc();
+            Update_ScrollZoom();
+            Update_KeyBoardMovement();
+            lastMousePosition = Input.mousePosition;
+            lastHexUnderMouse = hexUnderMouse;
+
+            CameraRotation();
+        }
+        
+    }
+
+    private Hex MouseToHex()
+    {
+        HexCoordinates hexCoordinates = Hex.GetHexCoordinates(MouseToGroundPlane(Input.mousePosition));
+       // Debug.Log("Q" + hexCoordinates.q + "R" + hexCoordinates.r);
+        Hex hex = HexMap.GetHex(hexCoordinates);
+        if (hex != null)
+        {
+            hexHighlight.transform.position = HexMap.GetHex(hexCoordinates).PositionInWorld();
+        }
+        return HexMap.GetHex(hexCoordinates);
+    }
+
+    private void Update_DetectModeStart()
+    {
+        if (Input.GetMouseButtonUp(1) && hexUnderMouse!=null)
+        {
+            /* List<Unit> units = hexUnderMouse.Units();//Probably Quills version
+              if (units != null && units.Count > 0)
+              {
+                  Debug.Log(" selectedUnit = units[0];");
+                  SelectedUnit = units[0];
+                  selectedUnitPotentialPaths = Hex.MovementPaths(hexUnderMouse, 2);
+                  DrawPotentialPaths();
+                  //Update_CurrentFunc = Update_UnitControl;
+              }*/
+            if(GameManager.TurnState == TurnStates.CONSTRUCTION)
+            {
+                if(potentialHexes!=null && potentialHexes.Count > 0)
+                {
+                    if (potentialHexes.Contains(hexUnderMouse))
+                    {
+                        GameManager.TryConstruct(selectedEntityType, true, hexUnderMouse);
+                        CancelUpdateFunc();
+                    }
+                }
+            }
+            else if(GameManager.TurnState == TurnStates.ACTION)
+            {
+                //Entity previouslySelectedEntity = SelectedEntity;
+
+                if (selectedUnits.Count > 0)
+                {
+                    Debug.Log("selectedUnits.Count > 0");
+                    //if (hexUnderMouse != SelectedEntity.Hex)//TODO:Might cause trouble
+                    {
+                        //if (SelectedEntity is Unit)
+                        {
+                            //Update_CurrentFunc = Update_UnitControl;
+                            Update_UnitControl();
+                        }
+                    }
+                }
+                //SelectedEntity might come out null out of the above code
+                if (selectedUnits.Count <= 0)
+                {
+                    // List<Entity> entities = hexUnderMouse.Entities;
+                    //  Unit unitAtHex = hexUnderMouse.FindEntityOf<Unit>();
+                    selectedUnits.AddRange(hexUnderMouse.FindEntitiesOfTypeAndPlayer<Unit>(GameManager.CurrentPlayerIndex));
+                    if (selectedUnits.Count > 0)
+                    {
+                        // potentialInteractions = Unit.GetInteractionNodes(hexUnderMouse, GameManager.CurrentPlayerIndex);//FIX
+                        potentialInteractions = selectedUnits[0].GetInteractionNodes(hexUnderMouse, GameManager.CurrentPlayerIndex);//FIX
+
+                    }
+
+                    //if (unitsAtHex.Count > 0)
+                    {
+                        //SelectedEntity = entities[0];//TODO: rework these parts please
+                        /* if (unitAtHex != previouslySelectedEntity)
+                         {
+                             selectedEntities = unitsAtHex;
+                             //potentialPathsAndInteractions = Hex.GetPathsAndInteractions(hexUnderMouse, unitAtHex);
+                             potentialInteractions = unitAtHex.GetInteractionNodes(hexUnderMouse);//FIX
+                             //potentialInteractions = unitAtHex.GetInteractionNodes(hexUnderMouse);
+                            // canConstructAVillageOnSelectedUnitHex = GameManager.CanConstructEntityOn(EntityTypes.VILLAGE, hexUnderMouse);
+                         }*/
+                        /* else if (GameManager.TurnState == TurnStates.CONSTRUCTION)
+                         {
+                             if (entityUnderMouse is Settlement)
+                             {
+                                 SelectedEntity = entityUnderMouse;
+                                 potentialHexes = ((Settlement)SelectedEntity).territory;
+                             }
+                             /*else if (SelectedEntity is Unit)
+                             {
+                                 potentialPaths = Hex.MovementPaths(hexUnderMouse, 2);
+                             }
+                         }*/
+                        DrawHexHighLights();
+                    }
+                }
+            }   
+        }
+
+   else if(Input.GetMouseButton(0) &&
+             Vector3.Distance(Input.mousePosition , lastMousePosition) > mouseDragThreshold)
+        {
+            lastMouseGroundPlanePosition = MouseToGroundPlane(Input.mousePosition);
+            Update_CurrentFunc = Update_CameraDrag;
+            
+            Update_CurrentFunc();
+        }
+    }
+
+    private void CancelUpdateFunc(bool forgetSelectionData = true)
+    {
+        if (forgetSelectionData)
+        {
+            //SelectedEntity = null;//Not Quills
+            selectedUnits.Clear();
+            hexPath = null;
+            potentialInteractions = null;
+
+            potentialHexes = null;
+            selectedEntityType = EntityTypes.NULL;
+           // canConstructAVillageOnSelectedUnitHex = false;
+
+            DrawHexHighLights();
+        }
+        Update_CurrentFunc = Update_DetectModeStart;
+    }
+
+    private void Update_UnitControl()
+    {
+        /*if (SelectedEntity == null || !(SelectedEntity is Unit))
+        {
+            Debug.LogError("SelectedEntity=null");
+        }*/
+        //if (Input.GetMouseButtonUp(1))// || SelectedUnit == null)
+        {
+            /*if (false)//Quills version
+            {
+                if (SelectedUnit != null)
+                {
+                    SelectedUnit.SetHexPath(hexPath);
+                }
+                CancelUpdateFunc();
+                return;
+            }*/
+            //Debug.Log(" Valid paths:" + potentialPaths.Count);
+            if (GameManager.CurrentPlayerHasAnActionPointLeft())//FIX:Remove this from here
+            {
+                if (potentialInteractions.Count > 0)
+                {
+                    foreach (InteractionNode node in potentialInteractions)
+                    {
+                        if (node.InteractionType != InteractionTypes.NULL)
+                        {
+                            if (node.hex == hexUnderMouse)
+                            {
+                                Debug.Log("InteractionType: " + Convert.ToString((byte)node.InteractionType, 2));
+                                GameManager.UnitInteraction(selectedUnits, node, potentialInteractions);
+                                break;
+                            }
+                        }
+                    }
+                }            
+                
+            }
+           
+            CancelUpdateFunc();
+
+        }
+        /*if(hexPath == null || hexUnderMouse != lastHexUnderMouse)
+        {
+            hexPath = PathFinding.Path.FindPath<Hex>(HexMap.instance, SelectedUnit, SelectedUnit.Hex, hexUnderMouse, Hex.CostEstimate);
+            DrawPath(hexPath);
+        }*/
+    }
+
+    
+    private Vector3 MouseToGroundPlane(Vector3 mousePosition)
+    {
+        Ray ray = Camera.main.ScreenPointToRay(mousePosition);
+        float rayLength = ray.origin.y / ray.direction.y;
+
+        return ray.origin - (ray.direction * rayLength);
+    }
+
+    private void Update_CameraDrag()
+    {
+        if (Input.GetMouseButtonUp(0))
+        {
+            CancelUpdateFunc(false);
+            return;
+        }
+
+        Vector3 hitPosition = MouseToGroundPlane(Input.mousePosition);
+        Vector3 difference = lastMouseGroundPlanePosition - hitPosition;
+        cameraTransform.Translate(difference, Space.World);
+
+        lastMouseGroundPlanePosition = hitPosition = MouseToGroundPlane(Input.mousePosition);
+    }
+
+    private void Update_ScrollZoom()
+    {
+        float scrollAmount = Input.GetAxisRaw("Mouse ScrollWheel") * -1;
+        if (Mathf.Abs(scrollAmount) > 0.01f)
+        {
+            Vector3 hitPosition = MouseToGroundPlane(Input.mousePosition);
+            Vector3 direction = Camera.main.transform.position - hitPosition;
+            if (!(scrollAmount < 0 && Camera.main.transform.position.y < 2))
+            {
+                cameraTransform.Translate(direction * scrollAmount, Space.World);
+
+            }
+        }
+    }
+
+    private void CameraRotation()
+    {
+        if (Input.GetMouseButtonDown(2))
+        {
+            previousCameraPosition = Camera.main.ScreenToViewportPoint(Input.mousePosition);
+            cameraAnchor = MouseToGroundPlane(Input.mousePosition);
+        }
+        if (Input.GetMouseButton(2))
+        {
+            Vector3 direction = previousCameraPosition - Camera.main.ScreenToViewportPoint(Input.mousePosition);
+            //  Vector3 angles = cameraTransform.eulerAngles;
+            // /cameraTransform.position = cameraAnchor;
+            // cameraTransform.Rotate(Vector3.right, direction.y * 180);
+            //  cameraTransform.Rotate(Vector3.up, direction.x * 180,Space.World);
+            //cameraTransform.Translate(Vector3.forward * -10);
+            previousCameraPosition = Camera.main.ScreenToViewportPoint(Input.mousePosition);
+            //if (Mathf.Abs( direction.x) > Mathf.Abs(direction.y))
+            {
+                //if (cameraTransform.position.y > 1)
+                {
+                    cameraTransform.RotateAround(cameraAnchor, Vector3.up, direction.x * 180);
+                    cameraTransform.localEulerAngles = new Vector3(cameraTransform.localEulerAngles.x, cameraTransform.localEulerAngles.y, 0);
+                    cameraTransform.RotateAround(cameraAnchor, Vector3.right, direction.y * 180);
+                }
+                // else
+                {
+                    //cameraTransform.Rotate(Vector3.right, direction.y * 180);
+                }
+            }
+            cameraTransform.localEulerAngles = new Vector3(cameraTransform.localEulerAngles.x, cameraTransform.localEulerAngles.y, 0);
+            // cameraTransform.Rotate(Vector3.right, direction.y * 180);
+            //cameraTransform.LookAt(cameraAnchor);
+            //rotationX += Input.GetAxis("Mouse X") * rotationSensitivityX * Time.deltaTime;
+            // rotationY += Input.GetAxis("Mouse Y") * rotationSensitivityY * Time.deltaTime;
+            //rotationY = Mathf.Clamp(rotationY, minY, maxY);
+            // cameraTransform.localEulerAngles = new Vector3(-rotationY, rotationX, 0);
+
+        }
+    }
+
+    private void Update_KeyBoardMovement()
+    {
+        if (Input.anyKey)
+        {
+            Vector3 translate = new Vector3
+            (Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+            cameraTransform.Translate(translate * Time.deltaTime * movementSpeed, Space.World);
+        }
+
+    }
+    #region Draw:
+    private void DrawPath(Hex[] hexPath)
+    {
+        if(hexPath==null || hexPath.Length <= 0)
+        {
+            lineRenderer.enabled = false;
+            return;
+        }
+        lineRenderer.enabled = true;
+        Vector3[] positions = new Vector3[hexPath.Length];
+        for (int i = 0; i < hexPath.Length; i++)
+        {
+            positions[i] = hexPath[i].PositionInWorld();
+        }
+        lineRenderer.positionCount = positions.Length;
+        lineRenderer.SetPositions(positions);
+
+    }
+
+    private static List<Hex> hexesToHighLight = new List<Hex>();
+
+    private static void DrawHexHighLights()
+    {
+        Reusables.ReturnHexPathHighLights(hexHighLights);
+        hexHighLights.Clear();
+
+        if (hexHighLights.Count != 0)
+        {
+            Debug.LogWarning("hexPathHighLights.Count != 0");
+        }
+        hexesToHighLight.Clear();
+
+        if(potentialInteractions!= null)
+        {
+            if (potentialInteractions.Count > 0)
+            {
+                foreach (InteractionNode node in potentialInteractions)
+                {
+                    if (node.InteractionType != InteractionTypes.NULL && !hexesToHighLight.Contains(node.hex))
+                    {
+                        hexesToHighLight.Add(node.hex);
+                    }
+                }
+            }
+
+        }
+       
+        else if (potentialHexes != null && potentialHexes.Count > 0)
+        {
+            //I know that it shouldnt have dupliucates
+            hexesToHighLight.AddRange(potentialHexes);
+        }
+
+        if (hexesToHighLight.Count > 0)
+        {
+            hexHighLights.AddRange(Reusables.LoanHexPathHighLights(hexesToHighLight.Count));
+
+            for (int i = 0; i < hexesToHighLight.Count; i++)
+            {
+                hexHighLights[i].transform.position = hexesToHighLight[i].PositionInWorld()+(Vector3.up*0.01f);
+            }
+        }
+    }
+    #endregion
+}
+

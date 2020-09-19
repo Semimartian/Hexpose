@@ -1,0 +1,232 @@
+﻿/*private void Update_SettlementControl()
+    {
+        if (SelectedEntity == null || !(SelectedEntity is Settlement))
+        {
+            Debug.LogError("SelectedEntity is invalid!");
+        }
+        //if (Input.GetMouseButtonUp(1))// || SelectedUnit == null)
+        {
+            Debug.Log(" Valid hexes:" + potentialHexes.Length);
+            foreach (Hex hex in potentialHexes)
+            {
+                if (hex == hexUnderMouse)
+                {
+                    //Settlement selectedSettlement = (Settlement)SelectedEntity;
+                    Debug.Log("Selected Valid hex");
+                    GameManager.TryConstruct(selectedEntityType, hex);
+                    //new Unit(hex, (byte)GameManager.CurrentPlayerIndex);
+                    break;
+                }
+            }
+            CancelUpdateFunc();
+        }
+    }
+    */
+
+/*if (Input.GetMouseButtonDown(0) && hexUnderMouse != null)
+{
+Unit[] units = hexUnderMouse.Units();
+
+if (units.Length > 0)
+{
+    selectedUnitPotentialPaths = Hex.MovementPaths(hexUnderMouse, 2);
+
+    //units[0].SetHexPath(paths[Random.Range(0, paths.Count)].hexes);
+}
+//Hex.MovementPaths(hexUnderMouse, 1);
+}*/
+
+/*if(SelectedUnit!= null)Quills 
+{
+    //FIX:unoptimised
+    DrawPath( hexPath != null ? hexPath : SelectedUnit.HexPath);
+}
+else
+{
+    DrawPath(null);
+}*/
+
+//bool isInteractable = unit.CanInteractWith(neighbour);
+/*if (isInteractable)
+{
+    if(node.movementPoints == unit.MovementPointsPerAction)
+    {
+        interactables.Add(new Interactable(neighbour, neighbour.FindEntityOf<Settlement>()));
+        foundNewPath = true;
+    }
+}
+else*/
+
+
+/* if (hexUnderMouse.HasSpecificEntity(SelectedEntity) && canConstructAVillageOnSelectedUnitHex)
+ {
+     GameManager.TryConstruct(EntityTypes.VILLAGE, true, hexUnderMouse);
+     OnActionTaken();
+ }
+ else*/
+
+/* bool foundHex = false;
+if (potentialPathsAndInteractions.interactables.Count > 0)
+{
+    foreach (Hex.Interactable interactable in potentialPathsAndInteractions.interactables)
+    {
+        if(interactable.hex == hexUnderMouse)
+        {
+            //Debug.Log("INTERACTABLE");
+            GameManager.Pillage((Unit)SelectedEntity, (Building)interactable.entity);//FIX!
+            foundHex = true;
+        }
+    }
+}*/
+
+/*private void Spawn(Hex hex, byte playerIndex)
+{
+    Vector3 position = hex.PositionInWorld();// + (hexHeight * Vector3.up);
+    SettlementType settlementType = (SettlementType)Random.Range(1, 4);
+    GameComponent preFab = (settlementType == SettlementType.VILLAGE ? villagePreFab : townPreFab);
+    GameComponent component = Instantiate(preFab, position, Quaternion.identity, this.transform);
+    component.ChangeMaterial(instance.playerMaterials[playerIndex]);
+    Settlement settlement = new Settlement(hex, playerIndex, component, settlementType);
+}*/
+
+/*  else if (SelectedEntity is Settlement )
+  {
+      // Update_CurrentFunc = Update_SettlementControl;
+      Update_SettlementControl();
+  }*/
+
+/*public struct Interactable
+  {
+      public readonly Hex hex;
+      public readonly Entity entity;
+
+      public Interactable(Hex hex, Entity entity)
+      {
+          this.hex = hex;
+          this.entity = entity;
+      }
+  }*/
+
+/* public class PathsAndInteractions
+ {
+     public List<HexPathNode> pathNodes;
+     public List<Interactable> interactables;
+     public PathsAndInteractions(List<HexPathNode> pathNodes, List<Interactable> interactables)
+     {
+         this.pathNodes = pathNodes;
+         this.interactables = interactables;
+     }
+ }*/
+
+/* public static void SpawnUnitAt(int q, int r, byte playerIndex)
+{
+    Hex hex = GetHex(q, r);
+    Unit unit = new Unit(hex, playerIndex);
+
+    //HexComponent hexComponent = hex.hexComponent;
+    Vector3 position = hex.PositionInWorld();// + (hexHeight * Vector3.up);
+   // hexComponent.transform.position + (hexHeight * Vector3.up);
+    UnitComponent unitComponent = Instantiate(instance.unitPrefab, position, Quaternion.identity, instance.transform);
+    unitComponent.ChangeMaterial(instance.playerMaterials[playerIndex]);
+    unit.SetHex(hex);
+    units.Add(unit);
+    unit.unitComponent = unitComponent;
+    unit.OnUnitMoved += unitComponent.Move;
+}*/
+
+/* private void SpawnSettlementAt( int q, int r, byte playerIndex)
+ {
+     Hex hex = GetHex(q, r);
+     //HexComponent hexComponent = hex.hexComponent;
+     Vector3 position = hex.PositionInWorld();// + (hexHeight * Vector3.up);
+     SettlementType settlementType = (SettlementType)Random.Range(1, 4);
+     GameComponent preFab = (settlementType == SettlementType.VILLAGE ? villagePreFab : townPreFab);
+     GameComponent component = Instantiate(preFab, position, Quaternion.identity, this.transform);
+     component.ChangeMaterial(instance.playerMaterials[playerIndex]);
+     Settlement settlement = new Settlement(hex, playerIndex,component, settlementType);
+ }*/
+
+
+/* private void UpdateHexesGraphics()
+ {
+     Hex hex;
+     HexComponent hexComponent;
+     for (int q = 0; q < numberOfColumns; q++)
+     {
+         for (int r = 0; r < numberOfRows; r++)
+         {
+             hex = hexes[q, r];
+             hexComponent = null;// hex.hexComponent;
+             bool surroundedByHexes = (GetHexesInRangeOf(hex, 2).Count >= 6);
+             hexComponent.UpdateGraphics
+                 (hex.PositionInWorld(),GetMaterialForHex(hex),(surroundedByHexes?hexWithoutWalls:hexWithWalls));
+
+         }
+     }
+ }*/
+
+// CombatUI.ArmyInformation armyAInfo = new CombatUI.ArmyInformation();
+// CombatUI.ArmyInformation armyBInfo = new CombatUI.ArmyInformation();
+
+/*Debug.Log("armyAPower: "+ armyA.power+
+    " dice: " + armyA.diceRoll + ", units:" + armyA.units.Count + (armyA == highGroundhaver ? " +1 for highGround" : ""));
+Debug.Log("armyBPower:" + armyB.power + 
+    " dice: " + armyB.diceRoll + ", units:" + armyB.units.Count + (armyB == highGroundhaver ? " +1 for highGround" : ""));*/
+
+/* public struct ArmyInformation
+{
+ public int power;
+ public int combatants;
+ public int diceRoll;
+ public int heightBonus;
+ public int casualties;
+}*/
+
+
+/* if (potentialPathsAndInteractions.interactables.Count > 0)
+ {
+     foreach (Hex.Interactable interactable in potentialPathsAndInteractions.interactables)
+     {
+         if (!hexesToHighLight.Contains(interactable.hex))
+         {
+             hexesToHighLight.Add(interactable.hex);
+         }
+     }
+ }*/
+
+/*this.hasResources = hasResources;
+this.isWater = isWater;*/
+//this.climate = climate;
+//this.hexComponent = hexComponent;
+
+
+
+public static void rDetermineAndSetPlayerTerritory(byte playerIndex)
+    {
+        List<Hex> territory = new List<Hex>();
+        short signature = Hex.GetNewSignature();
+        foreach (Entity entity in HexMap.Entities)
+        {
+            if (entity.PlayerIndex == playerIndex && entity is Settlement)
+            {
+                Settlement settlement = entity as Settlement;
+                Hex hex;
+                for (int i = 0; i < settlement.territory.Length; i++)
+                {
+                    hex = settlement.territory[i];
+                    if (hex.signature != signature)
+                    {
+                        if (hex.BelongsToSomeoneElse(playerIndex))
+                        {
+                            Debug.LogError("Hex belongs to somebody else!!!");
+                        }
+                        
+                        territory.Add(hex);
+                        hex.signature = signature;
+                    }
+                }
+            }
+        }
+        players[playerIndex].Territory = territory;
+        HexMap.BuildTerritoryMesh(playerIndex);//TODO: no need to do this so often, especially at the start
+    }
