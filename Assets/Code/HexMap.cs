@@ -1,69 +1,49 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
-using UnityEngine.XR.WSA.Input;
 
 public class HexMap : MonoBehaviour
 {
-    [SerializeField] private Collider mapZone;
-
-    public static void PrepareHexExplosion(Hex origin)
-    {
-        instance.StartCoroutine(instance.PrepareHexExplosionCoroutine(origin));   
-    }
-
-    private IEnumerator PrepareHexExplosionCoroutine(Hex origin)
-    {
-        int range = 2;
-        float waitTime = 0.15f;
-        List<Hex> hexesInRange = new List<Hex>(6);
-        hexesInRange.Add(origin);
-        if(origin.State == HexStates.Empty)
-        {
-            origin.ChangeState(HexStates.PotentiallyFull);
-
-        }
-        for (int i = 0; i < range; i++)
-        {
-            yield return new WaitForSeconds(waitTime);
-            int count = hexesInRange.Count;
-            for (int j = 0; j < count; j++)
-            {
-
-                Hex[] neighbours = hexesInRange[j].GetNeighbours();
-                for (int n = 0; n < neighbours.Length; n++)
-                {
-                    Hex neighbour = neighbours[n];
-                    if (neighbour.State == HexStates.Empty)// || neighbour.State == HexStates.PotentiallyFull )
-                    {
-                        neighbour.ChangeState(HexStates.PotentiallyFull);
-                    }
-                    hexesInRange.Add(neighbour);
-
-                }
-            }
-        }
-        //awaitingFill = true;
-    }
-
-    [SerializeField] private CombineableMesh combineableMeshPreFab;
-    [SerializeField] private Hex hexPreFab;
-    [SerializeField] private GameObject hexHighLightPreFab;
-    [SerializeField] private HexBomb hexBombPreFab;
     private static Hex[,] hexes;
     private static Hex[] realHexes;
     public readonly static int numberOfRows = 122;
     public readonly static int numberOfColumns = 122;
-
-    public static HexMap instance;
     private static bool mapWasGenerated;
+    [SerializeField] private Collider mapZone;
+    //[SerializeField] private CombineableMesh combineableMeshPreFab;
+    [SerializeField] private Hex hexPreFab;
+    [SerializeField] private HexBomb hexBombPreFab;
+    [SerializeField] private int bombGenerationChance = 32;
+    [SerializeField] private int hardHexGenerationChance = 14;
 
+    [Header("Materials:")]
     public Material emptyHexMat;
     public Material highLightedHexMat;
     public Material awaitingFillHexMat;
-
     public Material hardHexMat;
+    [SerializeField] private Material dynamicColourMat;
+
+    [SerializeField] Material[] hexColouredMaterials;
+    [SerializeField] private List<Material> dynamicHexColouredMaterials = new List<Material>();
+    [SerializeField] private bool useDynamicColours = true;
+    [SerializeField] private float DynamicColoursDifferenceThreshold = 0.1f;
+
+    public static HexMap instance;
+
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Debug.LogError("Tried to instantiate more than one map!");
+            return;
+        }
+
+        GenerateMap();
+    }
 
     public static Hex GetHex(int q, int r)
     {
@@ -109,31 +89,6 @@ public class HexMap : MonoBehaviour
     {
         return GetHex(GetRandomQ(), GetRandomR());
     }
-
-
-    private void Awake()
-    {
-        if (instance == null)
-        {
-            instance = this;
-        }
-        else
-        {
-            Debug.LogError("Tried to instantiate more than one map!");
-            return;
-        }
-
-        GenerateMap();
-    }
-
-    [SerializeField] private int bombGenerationChance = 32;
-    [SerializeField] private int hardHexGenerationChance = 14;
-    [SerializeField] private bool texturePainting = true;
-    [SerializeField] Material[] hexColouredMaterials;
-    [SerializeField] private List<Material> dynamicHexColouredMaterials = new List<Material>();
-    [SerializeField] private Material defaultMat;
-    [SerializeField] private bool useDynamicColours = true;
-    [SerializeField] private float DynamicColoursDifferenceThreshold = 0.1f;
 
     public Material GetHexColouredMaterial(ushort index)
     {
@@ -192,7 +147,7 @@ public class HexMap : MonoBehaviour
                             ushort? index = FindClosestDynamicMaterial(bestColour);
                             if (index == null)
                             {
-                                Material mat = new Material(defaultMat);
+                                Material mat = new Material(dynamicColourMat);
                                 mat.color = bestColour;
                                 dynamicHexColouredMaterials.Add(mat);
                                 bestMatIndex = (ushort)(dynamicHexColouredMaterials.Count - 1);
@@ -284,6 +239,7 @@ public class HexMap : MonoBehaviour
 
     [SerializeField] private Texture2D backGroundTexture;
 
+    #region Hex Material Finding:
     private Color32 GetBackgroundColourFromBounds(Vector3 point, Bounds bounds)
     {
         float x = (point.x - bounds.min.x) / (bounds.max.x - bounds.min.x);
@@ -354,6 +310,8 @@ public class HexMap : MonoBehaviour
         return closestMatIndex;
 
     }
+
+    #endregion
     /*public static void BuildTerritoryMesh()
     {
         CombineableMesh combineableMesh = instance.territoryHighLights[player.Index];
@@ -429,8 +387,14 @@ public class HexMap : MonoBehaviour
     private static List<int> floodFillSlicesSizes = new List<int>();
 
     private static bool awaitingFill = false;
+    private static int frameCount=0;
     public static void CalculateFill()
     {
+       if( Time.frameCount == frameCount)
+       {
+            return;
+       }
+        frameCount = Time.frameCount;
         Debug.Log("CalculateFill");
         ClearFloodFillMap();
         int width = HexMap.numberOfColumns;
@@ -495,7 +459,6 @@ public class HexMap : MonoBehaviour
         else
         {
             
-
             sbyte largestSliceID = 0;
             int largestSizeSoFar = 0;
             for (sbyte i = 0; i < floodFillSlicesSizes.Count; i++)
@@ -507,27 +470,35 @@ public class HexMap : MonoBehaviour
                 }
             }
 
+            //List<Hex> hexesToFill = new List<Hex>();
             for (int i = 0; i < realHexes.Length; i++)
             {
                 Hex hex = realHexes[i];
                 if (hex.State == HexStates.PotentiallyFull||
-                    (hex.fillMark >= 0 && hex.fillMark != largestSliceID))
+                   (hex.fillMark >= 0 && hex.fillMark != largestSliceID))
                 {
-                    //hex.Fill(true);
                     hex.ChangeState(HexStates.AwaitingFill);
+                    //hexesToFill.Add(hex);
                 }
             }
 
 
-            instance.StartCoroutine(instance.AwaitFillIn(0));
+            instance.StartCoroutine(instance.AwaitFillIn());
         }       
     }
 
-    IEnumerator AwaitFillIn(float time)
+    IEnumerator AwaitFillIn()
     {
-        yield return new WaitForSeconds(time);
+        /*foreach (Hex hex in hexesToFill)
+        {
+            hex.ChangeState(HexStates.AwaitingFill);
+            //yield return null;
+        }*/
+        yield return new WaitForSeconds(0.45f);
+
         awaitingFill = true;
         HexPainter.instance.FloorCheck();
+        yield return null;
 
     }
     private static void CompleteFill()
@@ -542,4 +513,44 @@ public class HexMap : MonoBehaviour
         }
     }
     #endregion
+
+
+    public static void PrepareHexExplosion(Hex origin)
+    {
+        instance.StartCoroutine(instance.PrepareHexExplosionCoroutine(origin));
+    }
+
+    private IEnumerator PrepareHexExplosionCoroutine(Hex origin)
+    {
+        int range = 2;
+        float waitTime = 0.15f;
+        List<Hex> hexesInRange = new List<Hex>(6);
+        hexesInRange.Add(origin);
+        if (origin.State == HexStates.Empty)
+        {
+            origin.ChangeState(HexStates.PotentiallyFull);
+
+        }
+        for (int i = 0; i < range; i++)
+        {
+            yield return new WaitForSeconds(waitTime);
+            int count = hexesInRange.Count;
+            for (int j = 0; j < count; j++)
+            {
+
+                Hex[] neighbours = hexesInRange[j].GetNeighbours();
+                for (int n = 0; n < neighbours.Length; n++)
+                {
+                    Hex neighbour = neighbours[n];
+                    if (neighbour.State == HexStates.Empty)// || neighbour.State == HexStates.PotentiallyFull )
+                    {
+                        neighbour.ChangeState(HexStates.PotentiallyFull);
+                    }
+                    hexesInRange.Add(neighbour);
+
+                }
+            }
+        }
+        //awaitingFill = true;
+    }
 }

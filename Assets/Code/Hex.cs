@@ -7,10 +7,6 @@ using UnityEngine.XR;
 //using System;
 //using System.Linq;
 
-public enum HexHeights:byte
-{
-    LOW=0,MEDIUM=1,HIGH=2
-}
 public struct HexCoordinates
 {
     public short q;
@@ -43,17 +39,7 @@ public class Hex : MonoBehaviour
     private const byte CLIMATE_BITS = 0b0000_1100; private int CLIMATE_SHIFT = 2;
     #region Getters and Setters:
 
-    public void SetHeight(HexHeights height)
-    {
-        compressedProperties = (byte)
-            ((compressedProperties & ~HEIGHT_BITS) | (byte)height);
-    }
-
-    public HexHeights Height
-    {
-        get { return (HexHeights)(compressedProperties & HEIGHT_BITS); }
-    }
-
+   
     #endregion
     #endregion
   
@@ -74,7 +60,8 @@ public class Hex : MonoBehaviour
     static readonly float HEX_WIDTH = HEX_HEIGHT * HEX_WIDTH_MULTIPLIER;
     static readonly float HEX_HORIZONTAL_SPACING = HEX_WIDTH;
     static readonly float HEX_VERTICAL_SPACING = HEX_HEIGHT * 0.75f;
-    static readonly float HEX_SIZE_MULTIPLIER = 0.4f;
+    static readonly float HEX_SIZE_MULTIPLIER = 0.6f;
+    public static readonly float HEX_Y = 0;
 
     #endregion
     // [SerializeField]int s;
@@ -112,7 +99,7 @@ public class Hex : MonoBehaviour
     {
         return new Vector3
             (HEX_HORIZONTAL_SPACING * (q + (r / 2f))
-            , 0,
+            , HEX_Y,
             HEX_VERTICAL_SPACING * r)*HEX_SIZE_MULTIPLIER;
     }
 
@@ -180,9 +167,14 @@ public class Hex : MonoBehaviour
         component.meshRenderer.material = HexMap.instance.highLightedHexMat;
     }
 
-    private void MarkAsAwiatingFill()
+    private IEnumerator MarkAsAwiatingFill()
     {
-        component.meshRenderer.material = HexMap.instance.awaitingFillHexMat;
+        yield return new WaitForSeconds(UnityEngine.Random.Range(0, 0.35f));
+        if(state == HexStates.AwaitingFill)
+        {
+            component.meshRenderer.material = HexMap.instance.awaitingFillHexMat;
+
+        }
     }
 
     private void Fill()
@@ -215,7 +207,7 @@ public class Hex : MonoBehaviour
                 MarkAsPotentiallyFull();
                 break;
             case HexStates.AwaitingFill:
-                MarkAsAwiatingFill();
+               StartCoroutine( MarkAsAwiatingFill());
                 break;
             case HexStates.Full:
                 Fill();

@@ -10,7 +10,9 @@ public class HexPainter : MonoBehaviour
     private Vector3 previousPosition;
     private Transform myTransform;
     [SerializeField] private LineRenderer line;
-    private float originalY;
+    [SerializeField] private Animator animator;
+    [SerializeField] private ParticleSystem collisionParticles;
+
     public static HexPainter instance;
     private void Awake()
     {
@@ -29,7 +31,6 @@ public class HexPainter : MonoBehaviour
     void Start()
     {
          myTransform = transform;
-        originalY = myTransform.position.y;
          previousPosition = transform.position;
     }
 
@@ -47,9 +48,9 @@ public class HexPainter : MonoBehaviour
         }
     }
 
-    [SerializeField] Transform motionGiver;
-    [SerializeField] SphereCollider collider;
-    private float floorCheckInterval = 0.12f;
+    [SerializeField] private Transform motionGiver;
+    [SerializeField] private SphereCollider overlapSphereCollider;
+    private float floorCheckInterval = 0.08f;
     private float lastFloorCheck;
     private void FixedUpdate()
     {
@@ -60,17 +61,17 @@ public class HexPainter : MonoBehaviour
         }
         rigidbody.velocity = rigidbody.velocity.normalized * pushForce;
 
-        // myTransform.rotation
         //myTransform.position = new Vector3(myTransform.position.x, originalY, myTransform.position.z);
 
         Vector3 currentPosition = myTransform.position;
 
-        if (lastFloorCheck + floorCheckInterval < Time.time)//TODO: Might be unessssry
-        {
+        FloorCheck();
+
+        //if (lastFloorCheck + floorCheckInterval < Time.time)//TODO: Might be unessssry
+       /* {
             FloorCheck();
             lastFloorCheck = Time.time;
-        }
-
+        }*/
 
         //Debug.Log("isOnAPotentialWall:" + isOnAPotentialWall);
         if (Input.GetMouseButton(0))
@@ -78,7 +79,6 @@ public class HexPainter : MonoBehaviour
             Vector3 direction = -(motionGiver.position - myTransform.position).normalized;
             direction.y = 0;
             myTransform.LookAt(currentPosition + direction);
-
         }
 
         float distanceFromPreviousPosition = Vector3.Distance(currentPosition, previousPosition);
@@ -89,9 +89,7 @@ public class HexPainter : MonoBehaviour
             line.SetPositions(positions.ToArray());
 
             myTransform.LookAt(currentPosition + rigidbody.velocity.normalized);
-            //myTransform.rotation = Vector3.ro(previousPosition, currentPosition);
-           previousPosition = currentPosition;
-
+            previousPosition = currentPosition;
         }
 
         ManageMotionGiver();
@@ -114,6 +112,7 @@ public class HexPainter : MonoBehaviour
     private bool pushRequest = false;
 
     [SerializeField] private float pushForce =55f;
+
     private void ManageMotionGiver()
     {
         Vector3 mouseScreenPosition = Input.mousePosition;
@@ -128,8 +127,6 @@ public class HexPainter : MonoBehaviour
         motionGiver.position = new Vector3
             (mouseWorldPosition.x, myTransform.position.y, mouseWorldPosition.z);
 
-
-
         if (pushRequest)
         {
             pushRequest = false;
@@ -141,11 +138,14 @@ public class HexPainter : MonoBehaviour
             rigidbody.AddForce(force,ForceMode.Impulse);
         }
     }
+
     public void FloorCheck()
     {
         isOnAPotentialWall = false;
+        Vector3 overlapSpherePosition = myTransform.position;
+        overlapSpherePosition.y = Hex.HEX_Y;
         Collider[] overlappingColliders =
-            Physics.OverlapSphere(myTransform.position, collider.radius * 2f);
+            Physics.OverlapSphere(overlapSpherePosition, overlapSphereCollider.radius );
         for (int i = 0; i < overlappingColliders.Length; i++)
         {
             Transform t = overlappingColliders[i].transform;
@@ -153,15 +153,28 @@ public class HexPainter : MonoBehaviour
             {
 
                 Hex hex = t.parent.GetComponent<Hex>();
-                if (hex != null &&
-                    (hex.State == HexStates.AwaitingFill))//|| hex.State == HexStates.PotentiallyFull))
+                if (hex != null)
                 {
-                    isOnAPotentialWall = true;
-                    break;
+
+                    HexStates hexState = hex.State;
+                    switch (hexState)
+                    {
+                        case HexStates.AwaitingFill:
+                            isOnAPotentialWall = true; break;
+                        /*case HexStates.Full:
+                            Collide(); break;*/
+                        case HexStates.Empty:
+                            hex.ChangeState(HexStates.PotentiallyFull); break;
+                       /*case HexStates.Hard:
+                            hex.ChangeState(HexStates.Empty); break;*/
+
+                    }
+
                 }
             }
         }
     }
+
     private void OnCollisionEnter(Collision collision)
     {
         //return;
@@ -171,40 +184,29 @@ public class HexPainter : MonoBehaviour
             Hex hex = collision.collider.transform.parent.GetComponent<Hex>();
             if (hex != null)
             {
+                bool playBounceAnimation = false;
                 HexStates hexState = hex.State;
-                if (hexState == HexStates.Full)
+                if (hexState == HexStates.Full || hexState == HexStates.Hard)
                 {
+                    if (hexState == HexStates.Hard)
+                    {
+                        hex.ChangeState(HexStates.Empty);
+                    }
                     Collide();
+                    playBounceAnimation = true;
                 }
-                else if (hexState == HexStates.Empty)
+
+                if (playBounceAnimation)
                 {
-                    hex.ChangeState(HexStates.PotentiallyFull);
+                    animator.SetTrigger("Bounce");
+                    collisionParticles.Play();
                 }
-                else if (hexState == HexStates.Hard)
-                {
-                    hex.ChangeState(HexStates.Empty);
-                }
+
             }
         }       
     }
 
-    /*private void OnCollisionExit(Collision collision)
-    {
-        if (collision.collider != null && collision.collider.transform.parent != null)
-        {
 
-            Hex hex = collision.collider.transform.parent.GetComponent<Hex>();
-            if (hex != null)
-            {
-                HexStates hexState = hex.State;
-                if (hexState == HexStates.PotentiallyFull)
-                {
-                    isOnAPotentialWall = false;
-                }
-
-            }
-        }
-    }*/
     private void Collide()
     {
         positions.Clear();
@@ -214,19 +216,37 @@ public class HexPainter : MonoBehaviour
 
     public static bool isOnAPotentialWall = false;
 
-   /* private void OnCollisionStay(Collision collision)
-    {
-        if (collision.collider != null && collision.collider.transform.parent != null)
-        {
 
-            Hex hex = collision.collider.transform.parent.GetComponent<Hex>();
-            if (hex != null)
+    /*private void OnCollisionExit(Collision collision)
+{
+    if (collision.collider != null && collision.collider.transform.parent != null)
+    {
+
+        Hex hex = collision.collider.transform.parent.GetComponent<Hex>();
+        if (hex != null)
+        {
+            HexStates hexState = hex.State;
+            if (hexState == HexStates.PotentiallyFull)
             {
-                if(hex.State == HexStates.PotentiallyFull)
-                {
-                    isOnAPotentialWall = true;
-                }
+                isOnAPotentialWall = false;
             }
 
-    }*/
+        }
+    }
+}*/
+    /* private void OnCollisionStay(Collision collision)
+     {
+         if (collision.collider != null && collision.collider.transform.parent != null)
+         {
+
+             Hex hex = collision.collider.transform.parent.GetComponent<Hex>();
+             if (hex != null)
+             {
+                 if(hex.State == HexStates.PotentiallyFull)
+                 {
+                     isOnAPotentialWall = true;
+                 }
+             }
+
+     }*/
 }
