@@ -12,6 +12,8 @@ public class HexPainter : MonoBehaviour
     [SerializeField] private LineRenderer line;
     [SerializeField] private Animator animator;
     [SerializeField] private ParticleSystem collisionParticles;
+    [SerializeField] private GameObject UIObject;
+
 
     public static HexPainter instance;
     private void Awake()
@@ -136,6 +138,8 @@ public class HexPainter : MonoBehaviour
            // transform.rotation = Quaternion.Euler(Vector3.zero);
             //rigidbody.rotation = Quaternion.Euler(Vector3.zero);
             rigidbody.AddForce(force,ForceMode.Impulse);
+            UIObject.SetActive(false);
+            SoundManager.PlayOneShotSoundAt(SoundNames.BallSent, myTransform.position);
         }
     }
 
@@ -143,7 +147,7 @@ public class HexPainter : MonoBehaviour
     {
         isOnAPotentialWall = false;
         Vector3 overlapSpherePosition = myTransform.position;
-        overlapSpherePosition.y = Hex.HEX_Y;
+        overlapSpherePosition.y = Hex.HEX_LOW_Y;
         Collider[] overlappingColliders =
             Physics.OverlapSphere(overlapSpherePosition, overlapSphereCollider.radius );
         for (int i = 0; i < overlappingColliders.Length; i++)
@@ -185,12 +189,12 @@ public class HexPainter : MonoBehaviour
             if (hex != null)
             {
                 bool playBounceAnimation = false;
-                HexStates hexState = hex.State;
-                if (hexState == HexStates.Full || hexState == HexStates.Hard)
+                bool isHard = hex.IsHard;
+                if (hex.State == HexStates.Full || isHard)
                 {
-                    if (hexState == HexStates.Hard)
+                    if (isHard)
                     {
-                        hex.ChangeState(HexStates.Empty);
+                        hex.Soften();
                     }
                     Collide();
                     playBounceAnimation = true;
@@ -198,14 +202,30 @@ public class HexPainter : MonoBehaviour
 
                 if (playBounceAnimation)
                 {
-                    animator.SetTrigger("Bounce");
-                    collisionParticles.Play();
+                    DoCollisionViewStuff(isHard);
                 }
 
             }
         }       
     }
 
+    private int frameCount;
+    [SerializeField] AudioSource audioSource;
+    private void DoCollisionViewStuff(bool hardCollision)
+    {
+        int currentFrameCount = Time.frameCount;
+        if (currentFrameCount == frameCount)
+        {
+            return;
+        }
+        frameCount = currentFrameCount;
+        animator.SetTrigger("Bounce");
+        collisionParticles.Play();
+        //SoundManager.PlayOneShotSoundAt(SoundNames.WallHit, audioSource);
+        SoundNames soundName = hardCollision ? SoundNames.LowGlocken : SoundNames.AllGlocken;
+        SoundManager.PlayOneShotSoundAt(soundName, transform.position);
+
+    }
 
     private void Collide()
     {

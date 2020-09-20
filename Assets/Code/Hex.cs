@@ -18,9 +18,14 @@ public struct HexCoordinates
     }
 }
 
+public enum HexTypes : byte
+{
+    Floor = 0, Hexposed=1, Hard=2,
+}
+
 public enum HexStates:byte
 {
-    Empty,Full,PotentiallyFull, AwaitingFill, Hard
+    Empty=0,Full,PotentiallyFull, AwaitingFill//, Hard
 }
 
 public class Hex : MonoBehaviour
@@ -33,16 +38,12 @@ public class Hex : MonoBehaviour
         get { return state; }
     }
 
-    private byte compressedProperties;
-    #region Compressed Properties:
-    private const byte HEIGHT_BITS = 0b0000_0011;//Changing this will require a bitwise shift
-    private const byte CLIMATE_BITS = 0b0000_1100; private int CLIMATE_SHIFT = 2;
-    #region Getters and Setters:
+    private bool isHard = false;
+    public bool IsHard
+    {
+        get { return isHard; }
+    }
 
-   
-    #endregion
-    #endregion
-  
     private Hex[] neighbours;
 
     public  byte Q;
@@ -60,8 +61,11 @@ public class Hex : MonoBehaviour
     static readonly float HEX_WIDTH = HEX_HEIGHT * HEX_WIDTH_MULTIPLIER;
     static readonly float HEX_HORIZONTAL_SPACING = HEX_WIDTH;
     static readonly float HEX_VERTICAL_SPACING = HEX_HEIGHT * 0.75f;
-    static readonly float HEX_SIZE_MULTIPLIER = 0.6f;
-    public static readonly float HEX_Y = 0;
+    static readonly float HEX_SIZE_MULTIPLIER = 0.62f;
+    public static readonly float HEX_LOW_Y = 0;
+    private const float HEX_HIGH_Y = 2.6f;
+    private const float RISE_PER_SECOND = 8f;
+    private const float FALL_PER_SECOND = 10f;
 
     #endregion
     // [SerializeField]int s;
@@ -99,7 +103,7 @@ public class Hex : MonoBehaviour
     {
         return new Vector3
             (HEX_HORIZONTAL_SPACING * (q + (r / 2f))
-            , HEX_Y,
+            , HEX_LOW_Y,
             HEX_VERTICAL_SPACING * r)*HEX_SIZE_MULTIPLIER;
     }
 
@@ -153,10 +157,6 @@ public class Hex : MonoBehaviour
         component.meshRenderer.material = mat;
     }
 
-    private const float PAINTED_HEIGHT = 2f;
-    private const float RISE_PER_SECOND = 8f;
-    private const float Fall_PER_SECOND = 10f;
-
     private void MarkAsPotentiallyFull()
     {
        /* if (state == HexStates.Full)
@@ -169,9 +169,14 @@ public class Hex : MonoBehaviour
 
     private IEnumerator MarkAsAwiatingFill()
     {
-        yield return new WaitForSeconds(UnityEngine.Random.Range(0, 0.35f));
+        yield return new WaitForSeconds(UnityEngine.Random.Range(0, 0.5f));
         if(state == HexStates.AwaitingFill)
         {
+           // if(UnityEngine.Random.Range(0, 6) == 0)
+            {
+               // SoundManager.PlayOneShotSoundAt(SoundNames.Pop, transform.position);
+
+            }
             component.meshRenderer.material = HexMap.instance.awaitingFillHexMat;
 
         }
@@ -182,10 +187,17 @@ public class Hex : MonoBehaviour
         StartCoroutine(Rise());
         component.meshRenderer.material = HexMap.instance.GetHexColouredMaterial(materialIndex);
     }
-    private void Harden()
+
+    public void Harden()
     {
+        isHard = true;
         StartCoroutine(Rise());
         component.meshRenderer.material = HexMap.instance.hardHexMat;
+    }
+    public void Soften()
+    {
+        isHard = false;
+        StartCoroutine(Fall());
     }
 
     private void MarkAsEmpty()
@@ -193,6 +205,7 @@ public class Hex : MonoBehaviour
         StartCoroutine(Fall());
         component.meshRenderer.material = HexMap.instance.emptyHexMat;
     }
+
     public void ChangeState(HexStates state)
     {
         if(state == this.state)
@@ -212,9 +225,9 @@ public class Hex : MonoBehaviour
             case HexStates.Full:
                 Fill();
                 break;
-            case HexStates.Hard:
+           /* case HexStates.Hard:
                 Harden();
-                break;
+                break;*/
             case HexStates.Empty:
                 MarkAsEmpty();
                 break;
@@ -227,24 +240,24 @@ public class Hex : MonoBehaviour
         //if (false)
         {
             Transform myTransform = transform;
-            while (myTransform.position.y < PAINTED_HEIGHT)
+            while (myTransform.position.y < HEX_HIGH_Y)
             {
                 myTransform.position += Vector3.up * speed * Time.deltaTime;
                 yield return null;
             }
 
-            myTransform.position = PositionInWorld() + (PAINTED_HEIGHT * Vector3.up);
+            myTransform.position = PositionInWorld() + (HEX_HIGH_Y * Vector3.up);
         }
     }
 
     private IEnumerator Fall()
     {
-        float speed = Fall_PER_SECOND;// + UnityEngine.Random.Range(-3f, 3f);
+        float speed = FALL_PER_SECOND;// + UnityEngine.Random.Range(-3f, 3f);
         //yield return new WaitForSeconds(UnityEngine.Random.Range(0, 0.18f));
         //if (false)
         {
             Transform myTransform = transform;
-            while (myTransform.position.y > 0)
+            while (myTransform.position.y > HEX_LOW_Y)
             {
                 myTransform.position -= (Vector3.up * speed * Time.deltaTime);
                 yield return null;

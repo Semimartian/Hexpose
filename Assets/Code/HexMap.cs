@@ -6,8 +6,8 @@ public class HexMap : MonoBehaviour
 {
     private static Hex[,] hexes;
     private static Hex[] realHexes;
-    public readonly static int numberOfRows = 122;
-    public readonly static int numberOfColumns = 122;
+    public readonly static int numberOfRows = 200;
+    public readonly static int numberOfColumns = 200;
     private static bool mapWasGenerated;
     [SerializeField] private Collider mapZone;
     //[SerializeField] private CombineableMesh combineableMeshPreFab;
@@ -29,7 +29,7 @@ public class HexMap : MonoBehaviour
     [SerializeField] private float DynamicColoursDifferenceThreshold = 0.1f;
 
     public static HexMap instance;
-
+    private Vector3 mapCentre;
     private void Awake()
     {
         if (instance == null)
@@ -108,7 +108,7 @@ public class HexMap : MonoBehaviour
         {
             Debug.LogError("Someone's trying to regenerate the map!");
         }
-
+        mapCentre = mapZone.transform.position;
         hexes = new Hex[numberOfColumns, numberOfRows];
 
         Bounds zoneBounds = mapZone.bounds;
@@ -127,13 +127,13 @@ public class HexMap : MonoBehaviour
                      hexPosition.z <= bounds.max.z);*/
                 if (hexIsInBounds)
                 {
-                    bool isAWall = false;
+                    HexTypes modifiedType = HexTypes.Floor;
                     for (int i = 0; i < walls.Length; i++)
                     {
                         Bounds wallBounds = walls[i].collider.bounds;
                         if (wallBounds.Contains(hexPosition))
                         {
-                            isAWall = true;
+                            modifiedType = walls[i].hexType;
                             break;
                         }
                     }
@@ -171,9 +171,17 @@ public class HexMap : MonoBehaviour
                     hexes[column, row] = hex;
                     realHexesList.Add(hex);
 
-                    if (isAWall)
+                    if (modifiedType != HexTypes.Floor)
                     {
-                        hex.ChangeState(HexStates.Full);
+                        if(modifiedType == HexTypes.Hard)
+                        {
+                            hex.Harden();
+                        }
+                        else if (modifiedType == HexTypes.Hexposed)
+                        {
+                            hex.ChangeState(HexStates.Full);
+
+                        }
                     }
                     else
                     {
@@ -187,7 +195,7 @@ public class HexMap : MonoBehaviour
                         else if (Random.Range(0, hardHexGenerationChance) == 0)
                         {
 
-                            hex.ChangeState(HexStates.Hard);
+                            hex.Harden();
 
                         }
                     }
@@ -358,8 +366,8 @@ public class HexMap : MonoBehaviour
         }
     }
     #region Flood Fill:
-    private const sbyte PAINTED = -1;
-    private const sbyte UNPAINTED = -2;
+    private const sbyte FILLED = -1;
+    private const sbyte UNFILLED = -2;
     private static List<Hex> fills = new List<Hex>();
     private static List<Hex> fillsNext = new List<Hex>();
 
@@ -380,7 +388,8 @@ public class HexMap : MonoBehaviour
         for (int i = 0; i < realHexes.Length; i++)
         {
             Hex hex = realHexes[i];
-            hex.fillMark = hex.State==HexStates.Empty ? UNPAINTED: PAINTED ;
+            bool isFillable = (hex.State == HexStates.Empty);
+            hex.fillMark =isFillable ? UNFILLED : FILLED;
         }  
     }
 
@@ -408,7 +417,7 @@ public class HexMap : MonoBehaviour
         for (int i = 0; i < realHexes.Length; i++)
         {
             Hex hex = realHexes[i];
-            if (hex.fillMark == UNPAINTED)
+            if (hex.fillMark == UNFILLED)
             {
                 currentID += 1;
                 floodFillSlicesSizes.Add(0);
@@ -429,7 +438,7 @@ public class HexMap : MonoBehaviour
                     for (int j = 0; j < neighbours.Length; j++)
                     {
                         neighbour = neighbours[j];
-                        if (neighbour.fillMark == UNPAINTED)
+                        if (neighbour.fillMark == UNFILLED)
                         {
                             neighbour.fillMark = currentID;
                             fillsNext.Add(neighbour);
@@ -503,13 +512,23 @@ public class HexMap : MonoBehaviour
     }
     private static void CompleteFill()
     {
+        bool playSound = false;
         for (int i = 0; i < realHexes.Length; i++)
         {
             Hex hex = realHexes[i];
             if (hex.State == HexStates.AwaitingFill)
             {
+                playSound = true;
                 hex.ChangeState(HexStates.Full);
             }
+        }
+
+        if (playSound)
+        {
+            Vector3 position = instance.mapCentre;
+            SoundManager.PlayOneShotSoundAt(SoundNames.GroundUp, position);
+           // SoundManager.PlayOneShotSoundAt(SoundNames.LowGlocken, position);
+
         }
     }
     #endregion
@@ -522,7 +541,7 @@ public class HexMap : MonoBehaviour
 
     private IEnumerator PrepareHexExplosionCoroutine(Hex origin)
     {
-        int range = 2;
+        int range = 4;
         float waitTime = 0.15f;
         List<Hex> hexesInRange = new List<Hex>(6);
         hexesInRange.Add(origin);
