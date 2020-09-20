@@ -6,8 +6,8 @@ public class HexMap : MonoBehaviour
 {
     private static Hex[,] hexes;
     private static Hex[] realHexes;
-    public readonly static int numberOfRows = 200;
-    public readonly static int numberOfColumns = 200;
+    public readonly static byte numberOfRows = 200;
+    public readonly static byte numberOfColumns = 200;
     private static bool mapWasGenerated;
     [SerializeField] private Collider mapZone;
     //[SerializeField] private CombineableMesh combineableMeshPreFab;
@@ -43,6 +43,8 @@ public class HexMap : MonoBehaviour
         }
 
         GenerateMap();
+        UpdatePercentageUI();
+
     }
 
     public static Hex GetHex(int q, int r)
@@ -102,6 +104,7 @@ public class HexMap : MonoBehaviour
         }
 
     }
+
     public void GenerateMap()
     {
         if (mapWasGenerated)
@@ -166,7 +169,7 @@ public class HexMap : MonoBehaviour
                     }
 
                     Hex hex = Instantiate(hexPreFab);
-                    hex.Construct(column, row, hex.GetComponent<HexComponent>(), bestMatIndex);
+                    hex.Construct(bestMatIndex);
                     hex.transform.position = hexPosition;
                     hexes[column, row] = hex;
                     realHexesList.Add(hex);
@@ -219,9 +222,19 @@ public class HexMap : MonoBehaviour
 
             }
         }
+        for (int column = 0; column < numberOfColumns; column++)
+        {
+            for (int row = 0; row < numberOfRows; row++)
+            {
+                if(hexes[column, row] != null)
+                {
+                    hexes[column, row].SetNeighbours(column, row);
+                }
+            }
+        }
 
         realHexes = realHexesList.ToArray();
-
+        Debug.Log("Hexes Count: " + realHexes.Length);
         for (int i = 0; i < walls.Length; i++)
         {
             Destroy(walls[i].gameObject);////0;
@@ -243,11 +256,13 @@ public class HexMap : MonoBehaviour
         }*/
         #endregion
         mapWasGenerated = true;
+
     }
 
     [SerializeField] private Texture2D backGroundTexture;
 
     #region Hex Material Finding:
+
     private Color32 GetBackgroundColourFromBounds(Vector3 point, Bounds bounds)
     {
         float x = (point.x - bounds.min.x) / (bounds.max.x - bounds.min.x);
@@ -256,10 +271,9 @@ public class HexMap : MonoBehaviour
        // Bounds normalisedBounds = new Bounds();
         //float maxX = bounds.max.x;
     }
+
     private Color32 GetBackgroundColour(float x, float y)
     {
-        //MeshRenderer renderer = null;
-       // MeshFilter meshFilter = null;
         Texture2D texture = backGroundTexture;// renderer.material.mainTexture;
         return texture.GetPixelBilinear(x, y);
        
@@ -313,43 +327,28 @@ public class HexMap : MonoBehaviour
             closestMatIndex = null;
         }
 
-        Debug.Log(("bestDifference: " + bestDifference.ToString())+ 
-            (closestMatIndex!=null?"Colour found": "Colour NOT found"));
+      /*  Debug.Log(("bestDifference: " + bestDifference.ToString())+ 
+            (closestMatIndex!=null?"Colour found": "Colour NOT found"));*/
         return closestMatIndex;
 
     }
 
     #endregion
-    /*public static void BuildTerritoryMesh()
+
+    private void Update()
     {
-        CombineableMesh combineableMesh = instance.territoryHighLights[player.Index];
-
-        foreach (Hex hex in player.Territory)
-        {
-            Instantiate(instance.hexHighLightPreFab, hex.PositionInWorld(), Quaternion.identity, combineableMesh.transform);
-        }
-
-        combineableMesh.CombineMeshes(instance.playersHighLightsMaterials[player.Index]);
-    }*/
-
-    public List<Hex> GetHexesInRangeOf(Hex centreHex, int range)
-    {
-        List<Hex> hexesInRange = new List<Hex>();
-        for (int dx = -range; dx < range-1; dx++)
-        {
-            for (int dy = Mathf.Max(-range+1,-dx-range); dy <  Mathf.Min(range,-dx+range-1); dy++)
+         if (Input.GetKeyDown(KeyCode.R))
+         {
+            for (int i = 0; i < realHexes.Length; i++)
             {
-                Hex hex = GetHex(centreHex.Q + dx, centreHex.R + dy);
-                if (hex != null)
+                MeshRenderer renderer = realHexes[i].GetComponentInChildren<MeshRenderer>();
+                if (renderer != null)
                 {
-                    hexesInRange.Add(hex);
-
+                    renderer.enabled = !renderer.enabled;
                 }
             }
-        }
-        return hexesInRange;
+         }
     }
-
 
     private void FixedUpdate()
     {
@@ -406,8 +405,7 @@ public class HexMap : MonoBehaviour
         frameCount = Time.frameCount;
         Debug.Log("CalculateFill");
         ClearFloodFillMap();
-        int width = HexMap.numberOfColumns;
-        int height = HexMap.numberOfRows;
+
         sbyte currentID = -1;
 
         fills.Clear();
@@ -483,14 +481,14 @@ public class HexMap : MonoBehaviour
             for (int i = 0; i < realHexes.Length; i++)
             {
                 Hex hex = realHexes[i];
+                sbyte fillMark = hex.fillMark;
                 if (hex.State == HexStates.PotentiallyFull||
-                   (hex.fillMark >= 0 && hex.fillMark != largestSliceID))
+                   (fillMark >= 0 && fillMark != largestSliceID))
                 {
                     hex.ChangeState(HexStates.AwaitingFill);
                     //hexesToFill.Add(hex);
                 }
             }
-
 
             instance.StartCoroutine(instance.AwaitFillIn());
         }       
@@ -530,9 +528,29 @@ public class HexMap : MonoBehaviour
            // SoundManager.PlayOneShotSoundAt(SoundNames.LowGlocken, position);
 
         }
+
+        UpdatePercentageUI();
     }
     #endregion
 
+    [SerializeField] private TMPro.TextMeshProUGUI percentageUIText;
+    private static void UpdatePercentageUI()
+    {
+        int fullHexes = 0;
+        int hexCount = realHexes.Length;
+        for (int i = 0; i < hexCount; i++)
+        {
+            if(realHexes[i].State == HexStates.Full)
+            {
+                fullHexes += 1;
+            }
+        }
+        float percentage = ((float)fullHexes / (float)hexCount) * 100f;
+        string text = fullHexes.ToString() + "/" + hexCount.ToString() + "\n" +
+           percentage.ToString("f1") + "%";
+
+        instance.percentageUIText.text = text;
+    }
 
     public static void PrepareHexExplosion(Hex origin)
     {

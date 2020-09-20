@@ -30,7 +30,6 @@ public enum HexStates:byte
 
 public class Hex : MonoBehaviour
 {
-    private HexComponent component;
     public sbyte fillMark;
     private HexStates state;
     public HexStates State
@@ -46,13 +45,16 @@ public class Hex : MonoBehaviour
 
     private Hex[] neighbours;
 
-    public  byte Q;
-    public  byte R;
+   /* public  byte Q;
+    public  byte R;*/
 
-    public int S()
+    private ushort materialIndex;
+
+
+    /*public int S()
     {
         return -(Q + R);
-    }
+    }*/
 
     #region Position:
     static readonly float HEX_WIDTH_MULTIPLIER = Mathf.Sqrt(3) / 2;
@@ -61,7 +63,7 @@ public class Hex : MonoBehaviour
     static readonly float HEX_WIDTH = HEX_HEIGHT * HEX_WIDTH_MULTIPLIER;
     static readonly float HEX_HORIZONTAL_SPACING = HEX_WIDTH;
     static readonly float HEX_VERTICAL_SPACING = HEX_HEIGHT * 0.75f;
-    static readonly float HEX_SIZE_MULTIPLIER = 0.62f;
+    static readonly float HEX_SIZE_MULTIPLIER = 0.55f;
     public static readonly float HEX_LOW_Y = 0;
     private const float HEX_HIGH_Y = 2.6f;
     private const float RISE_PER_SECOND = 8f;
@@ -69,35 +71,37 @@ public class Hex : MonoBehaviour
 
     #endregion
     // [SerializeField]int s;
-    public void Construct(int q, int r, HexComponent hexComponent,ushort materialIndex )
+    public void Construct(/*int q, int r,*/ ushort materialIndex )
     {
-        Q = (byte)q;
-        R = (byte)r;
-        component = hexComponent;
-        component.meshRenderer.material = HexMap.instance.emptyHexMat;
+       /* Q = (byte)q;
+        R = (byte)r;*/
+
+        SetMaterial(HexMap.instance.emptyHexMat);
         transform.localScale = HEX_SIZE_MULTIPLIER * Vector3.one;
         this.materialIndex = materialIndex;
         //s = S();
-        //  SetHeight(height);
         // compressedProperties = (byte)(hasResources ? (compressedProperties | HAS_RESOURCES) : (compressedProperties & ~HAS_RESOURCES));
         // compressedProperties = (byte)(isWater ? (compressedProperties | IS_WATER) : (compressedProperties & ~IS_WATER));
-        //S = -(q + r);
     }
 
+    private void SetMaterial(Material mat)
+    {
+        GetComponentInChildren<MeshRenderer>().material = mat;
+    }
     /* public static short GetNewSignature()
      {
          return (short)UnityEngine.Random.Range(DEFAULT_SIGNATURE+1, short.MaxValue);
      }*/
 
-    public override string ToString()
+    /*public override string ToString()
     {
         return "Q " + Q + "R" + R;
-    }
+    }*/
 
-    public Vector3 PositionInWorld()
+   /* public Vector3 PositionInWorld()
     {
         return  PositionInWorld(Q, R);
-    }
+    }*/
 
     public static Vector3 PositionInWorld(int q, int r)
     {
@@ -115,35 +119,38 @@ public class Hex : MonoBehaviour
         return new HexCoordinates(q, r);
     }
 
-    public static int Distance(Hex a, Hex b)
+   /* public static int Distance(Hex a, Hex b)
     {
         return Mathf.Max
             (Mathf.Abs(a.Q - b.Q), Mathf.Abs(a.R - b.R), Mathf.Abs(a.S() - b.S()));
+    }*/
+
+    public void SetNeighbours(int Q, int R)
+    {
+        //Maybe better to do this inside HexMap
+        List<Hex> neighbours = new List<Hex>();
+
+        neighbours.Add(HexMap.GetHex(Q + 1, R));
+        neighbours.Add(HexMap.GetHex(Q - 1, R));
+        neighbours.Add(HexMap.GetHex(Q, R + 1));
+        neighbours.Add(HexMap.GetHex(Q, R - 1));
+        neighbours.Add(HexMap.GetHex(Q + 1, R - 1));
+        neighbours.Add(HexMap.GetHex(Q - 1, R + 1));
+
+        List<Hex> realNeighbours = new List<Hex>();
+        foreach (Hex hex in neighbours)
+        {
+            if (hex != null)
+            {
+                realNeighbours.Add(hex);
+            }
+        }
+
+        this.neighbours = realNeighbours.ToArray();
     }
+
     public Hex[] GetNeighbours()//GetAdjacentHexes()
     {
-        if(this.neighbours == null)
-        {
-            List<Hex> neighbours = new List<Hex>();
-
-            neighbours.Add(HexMap.GetHex(Q + 1, R));
-            neighbours.Add(HexMap.GetHex(Q - 1, R));
-            neighbours.Add(HexMap.GetHex(Q, R + 1));
-            neighbours.Add(HexMap.GetHex(Q, R - 1));
-            neighbours.Add(HexMap.GetHex(Q + 1, R - 1));
-            neighbours.Add(HexMap.GetHex(Q - 1, R + 1));
-
-            List<Hex> realNeighbours = new List<Hex>();
-            foreach (Hex hex in neighbours)
-            {
-                if(hex != null)
-                {
-                    realNeighbours.Add(hex);
-                }
-            }
-
-            this.neighbours = realNeighbours.ToArray();
-        }
         return this.neighbours;
     }
 
@@ -151,33 +158,27 @@ public class Hex : MonoBehaviour
     {
         component.meshRenderer.material.color = colour;
     }*/
-    private ushort materialIndex;
-    private void PaintIn(Material mat)
-    {
-        component.meshRenderer.material = mat;
-    }
 
     private void MarkAsPotentiallyFull()
     {
-       /* if (state == HexStates.Full)
-        {
-            Debug.LogError("Already painted!");
-            return;
-        }*/
-        component.meshRenderer.material = HexMap.instance.highLightedHexMat;
+        /* if (state == HexStates.Full)
+         {
+             Debug.LogError("Already painted!");
+             return;
+         }*/
+        SetMaterial(HexMap.instance.highLightedHexMat);
     }
 
     private IEnumerator MarkAsAwiatingFill()
     {
-        yield return new WaitForSeconds(UnityEngine.Random.Range(0, 0.5f));
+        yield return new WaitForSeconds(UnityEngine.Random.Range(0, 0.44f));
         if(state == HexStates.AwaitingFill)
         {
            // if(UnityEngine.Random.Range(0, 6) == 0)
             {
                // SoundManager.PlayOneShotSoundAt(SoundNames.Pop, transform.position);
-
             }
-            component.meshRenderer.material = HexMap.instance.awaitingFillHexMat;
+            SetMaterial(HexMap.instance.awaitingFillHexMat);
 
         }
     }
@@ -185,15 +186,16 @@ public class Hex : MonoBehaviour
     private void Fill()
     {
         StartCoroutine(Rise());
-        component.meshRenderer.material = HexMap.instance.GetHexColouredMaterial(materialIndex);
+        SetMaterial(HexMap.instance.GetHexColouredMaterial(materialIndex));
     }
 
     public void Harden()
     {
         isHard = true;
         StartCoroutine(Rise());
-        component.meshRenderer.material = HexMap.instance.hardHexMat;
+        SetMaterial(HexMap.instance.hardHexMat);
     }
+
     public void Soften()
     {
         isHard = false;
@@ -203,7 +205,7 @@ public class Hex : MonoBehaviour
     private void MarkAsEmpty()
     {
         StartCoroutine(Fall());
-        component.meshRenderer.material = HexMap.instance.emptyHexMat;
+        SetMaterial(HexMap.instance.emptyHexMat);
     }
 
     public void ChangeState(HexStates state)
@@ -233,6 +235,7 @@ public class Hex : MonoBehaviour
                 break;
         }
     }
+
     private IEnumerator Rise()
     {
         float speed = RISE_PER_SECOND + UnityEngine.Random.Range(-3f, 3f);
@@ -246,7 +249,9 @@ public class Hex : MonoBehaviour
                 yield return null;
             }
 
-            myTransform.position = PositionInWorld() + (HEX_HIGH_Y * Vector3.up);
+
+            myTransform.position =// PositionInWorld() + (HEX_HIGH_Y * Vector3.up);
+                new Vector3(myTransform.position.x, HEX_HIGH_Y, myTransform.position.z);
         }
     }
 
@@ -263,7 +268,9 @@ public class Hex : MonoBehaviour
                 yield return null;
             }
 
-            myTransform.position = PositionInWorld(); 
+            myTransform.position =// PositionInWorld(); 
+                new Vector3(myTransform.position.x, HEX_LOW_Y, myTransform.position.z);
+
         }
     }
 }

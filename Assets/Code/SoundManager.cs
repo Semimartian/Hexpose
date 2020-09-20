@@ -11,6 +11,8 @@ public class CorrectedSoundClip
 {
     public AudioClip clip;
     [Range(0, 1)] public float volume;
+    public bool ignoreMe;
+
 
 }
 [Serializable]
@@ -72,7 +74,16 @@ public class SoundManager : MonoBehaviour
             Sound sound = sounds[i];
             if (sounds[i].name == name)
             {
-                clip = sound.audioClips[UnityEngine.Random.Range(0, sound.audioClips.Length)];
+                int clipIndex = 0;
+                for (int j = 0; j < 8; j++)
+                {
+                    clipIndex = UnityEngine.Random.Range(0, sound.audioClips.Length);
+                    if (!sound.audioClips[clipIndex].ignoreMe)
+                    {
+                        break;
+                    }
+                }
+                clip = sound.audioClips[clipIndex];
                 minPitch = sound.minPitch; maxPitch = sound.maxPitch;
                 volumeModification = UnityEngine.Random.Range(0, sound.volumeModifier);
             }
