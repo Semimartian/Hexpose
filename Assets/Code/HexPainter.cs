@@ -184,7 +184,7 @@ public class HexPainter : MonoBehaviour
         //return;
         if (collision.collider != null && collision.collider.transform.parent!=null)
         {
-
+            
             Hex hex = collision.collider.transform.parent.GetComponent<Hex>();
             if (hex != null)
             {
@@ -205,6 +205,15 @@ public class HexPainter : MonoBehaviour
                     DoCollisionViewStuff(isHard);
                 }
 
+            }
+            else
+            {
+                Enemy enemy = collision.collider.transform.parent.GetComponent<Enemy>();
+                if (enemy != null)
+                {
+                    Debug.Log("You lost!");
+                    gameObject.SetActive(false);
+                }
             }
         }       
     }

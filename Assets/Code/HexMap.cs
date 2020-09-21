@@ -518,6 +518,8 @@ public class HexMap : MonoBehaviour
             {
                 playSound = true;
                 hex.ChangeState(HexStates.Full);
+                //TODO: Find a more efficient method of findingThe enemies
+                hex.KillEnemiesOnTop();
             }
         }
 

@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.XR;
 //using System;
 //using System.Linq;
 
@@ -20,17 +19,19 @@ public struct HexCoordinates
 
 public enum HexTypes : byte
 {
-    Floor = 0, Hexposed=1, Hard=2,
+    Floor = 0, Hexposed = 1, Hard = 2,
 }
 
 public enum HexStates:byte
 {
-    Empty=0,Full,PotentiallyFull, AwaitingFill//, Hard
+    Empty = 0,Full=1, PotentiallyFull=2, AwaitingFill=3//, Hard
 }
 
 public class Hex : MonoBehaviour
 {
+
     public sbyte fillMark;
+
     private HexStates state;
     public HexStates State
     {
@@ -44,26 +45,23 @@ public class Hex : MonoBehaviour
     }
 
     private Hex[] neighbours;
-
-   /* public  byte Q;
-    public  byte R;*/
-
     private ushort materialIndex;
 
-
+    /* public  byte Q;
+    public  byte R;*/
     /*public int S()
     {
         return -(Q + R);
     }*/
 
     #region Position:
-    static readonly float HEX_WIDTH_MULTIPLIER = Mathf.Sqrt(3) / 2;
-    static readonly float HEX_RADIUS = 1f;
-    static readonly float HEX_HEIGHT = HEX_RADIUS * 2;
-    static readonly float HEX_WIDTH = HEX_HEIGHT * HEX_WIDTH_MULTIPLIER;
-    static readonly float HEX_HORIZONTAL_SPACING = HEX_WIDTH;
-    static readonly float HEX_VERTICAL_SPACING = HEX_HEIGHT * 0.75f;
-    static readonly float HEX_SIZE_MULTIPLIER = 0.55f;
+    private static readonly float HEX_WIDTH_MULTIPLIER = Mathf.Sqrt(3) / 2;
+    private static readonly float HEX_RADIUS = 1f;
+    private static readonly float HEX_HEIGHT = HEX_RADIUS * 2;
+    private static readonly float HEX_WIDTH = HEX_HEIGHT * HEX_WIDTH_MULTIPLIER;
+    private static readonly float HEX_HORIZONTAL_SPACING = HEX_WIDTH;
+    private static readonly float HEX_VERTICAL_SPACING = HEX_HEIGHT * 0.75f;
+    private static readonly float HEX_SIZE_MULTIPLIER = 0.7f;
     public static readonly float HEX_LOW_Y = 0;
     private const float HEX_HIGH_Y = 2.6f;
     private const float RISE_PER_SECOND = 8f;
@@ -73,15 +71,12 @@ public class Hex : MonoBehaviour
     // [SerializeField]int s;
     public void Construct(/*int q, int r,*/ ushort materialIndex )
     {
-       /* Q = (byte)q;
-        R = (byte)r;*/
-
         SetMaterial(HexMap.instance.emptyHexMat);
         transform.localScale = HEX_SIZE_MULTIPLIER * Vector3.one;
         this.materialIndex = materialIndex;
+        /* Q = (byte)q;
+        R = (byte)r;*/
         //s = S();
-        // compressedProperties = (byte)(hasResources ? (compressedProperties | HAS_RESOURCES) : (compressedProperties & ~HAS_RESOURCES));
-        // compressedProperties = (byte)(isWater ? (compressedProperties | IS_WATER) : (compressedProperties & ~IS_WATER));
     }
 
     private void SetMaterial(Material mat)
@@ -113,8 +108,10 @@ public class Hex : MonoBehaviour
 
     public static HexCoordinates GetHexCoordinates(Vector3 position)
     {
-        short r = (short)Mathf.RoundToInt(/*(float)Mathf.CeilToInt*/(position.z) / HEX_VERTICAL_SPACING);
-        short q = (short)Mathf.RoundToInt((/*(float)Mathf.CeilToInt*/(position.x) / HEX_HORIZONTAL_SPACING) - (r / 2f));
+        short r = (short)Mathf.RoundToInt
+            (/*(float)Mathf.CeilToInt*/(position.z) / HEX_VERTICAL_SPACING);
+        short q = (short)Mathf.RoundToInt
+            ((/*(float)Mathf.CeilToInt*/(position.x) / HEX_HORIZONTAL_SPACING) - (r / 2f));
 
         return new HexCoordinates(q, r);
     }
@@ -154,18 +151,8 @@ public class Hex : MonoBehaviour
         return this.neighbours;
     }
 
-    /*public void PaintIn(Color32 colour)
-    {
-        component.meshRenderer.material.color = colour;
-    }*/
-
     private void MarkAsPotentiallyFull()
     {
-        /* if (state == HexStates.Full)
-         {
-             Debug.LogError("Already painted!");
-             return;
-         }*/
         SetMaterial(HexMap.instance.highLightedHexMat);
     }
 
@@ -174,7 +161,7 @@ public class Hex : MonoBehaviour
         yield return new WaitForSeconds(UnityEngine.Random.Range(0, 0.44f));
         if(state == HexStates.AwaitingFill)
         {
-           // if(UnityEngine.Random.Range(0, 6) == 0)
+            // if(UnityEngine.Random.Range(0, 6) == 0)
             {
                // SoundManager.PlayOneShotSoundAt(SoundNames.Pop, transform.position);
             }
@@ -249,7 +236,6 @@ public class Hex : MonoBehaviour
                 yield return null;
             }
 
-
             myTransform.position =// PositionInWorld() + (HEX_HIGH_Y * Vector3.up);
                 new Vector3(myTransform.position.x, HEX_HIGH_Y, myTransform.position.z);
         }
@@ -272,6 +258,25 @@ public class Hex : MonoBehaviour
                 new Vector3(myTransform.position.x, HEX_LOW_Y, myTransform.position.z);
 
         }
+    }
+
+    public void KillEnemiesOnTop()
+    {
+        Collider[] collidersOnTop = Physics.OverlapBox(transform.position, Vector3.one);
+        for (int i = 0; i < collidersOnTop.Length; i++)
+        {
+            Collider collider = collidersOnTop[i];
+            if (collider.transform.parent != null)
+            {
+                Enemy enemy = collider.transform.parent.GetComponent<Enemy>();
+                if (enemy != null)
+                {
+                    enemy.Die(transform);
+                }
+            }
+        }
+       
+        
     }
 }
 
