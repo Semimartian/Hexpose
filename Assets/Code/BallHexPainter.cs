@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
 
 public class BallHexPainter : MonoBehaviour
 {
@@ -56,18 +55,46 @@ public class BallHexPainter : MonoBehaviour
     private float lastFloorCheck;
     private void FixedUpdate()
     {
-        
-        if (rigidbody.velocity.y > 0)
+
+        if (GameManager.GameState == GameStates.GameOver)
         {
-            rigidbody.velocity = rigidbody.velocity - (Vector3.up * rigidbody.velocity.y);
+           rigidbody.velocity = Vector3.zero;
         }
-        rigidbody.velocity = rigidbody.velocity.normalized * pushForce;
+        else//    if (GameManager.GameState!= GameStates.GameOver)
+        {
+            if (rigidbody.velocity.y > 0)
+            {
+                rigidbody.velocity = rigidbody.velocity - (Vector3.up * rigidbody.velocity.y);
+            }
+            rigidbody.velocity = rigidbody.velocity.normalized * pushForce;
 
-        //myTransform.position = new Vector3(myTransform.position.x, originalY, myTransform.position.z);
+            //myTransform.position = new Vector3(myTransform.position.x, originalY, myTransform.position.z);
 
-        Vector3 currentPosition = myTransform.position;
+            Vector3 currentPosition = myTransform.position;
 
-        FloorCheck();
+            FloorCheck();
+
+            if (Input.GetMouseButton(0))
+            {
+                Vector3 direction = -(motionGiver.position - myTransform.position).normalized;
+                direction.y = 0;
+                myTransform.LookAt(currentPosition + direction);
+            }
+
+            float distanceFromPreviousPosition = Vector3.Distance(currentPosition, previousPosition);
+            if (distanceFromPreviousPosition > 0.25f)
+            {
+                positions.Add(currentPosition);
+                line.positionCount = positions.Count;
+                line.SetPositions(positions.ToArray());
+
+                myTransform.LookAt(currentPosition + rigidbody.velocity.normalized);
+                previousPosition = currentPosition;
+            }
+
+            ManageMotionGiver();
+        }
+        
 
         //if (lastFloorCheck + floorCheckInterval < Time.time)//TODO: Might be unessssry
        /* {
@@ -76,25 +103,7 @@ public class BallHexPainter : MonoBehaviour
         }*/
 
         //Debug.Log("isOnAPotentialWall:" + isOnAPotentialWall);
-        if (Input.GetMouseButton(0))
-        {
-            Vector3 direction = -(motionGiver.position - myTransform.position).normalized;
-            direction.y = 0;
-            myTransform.LookAt(currentPosition + direction);
-        }
-
-        float distanceFromPreviousPosition = Vector3.Distance(currentPosition, previousPosition);
-        if (distanceFromPreviousPosition > 0.25f)
-        {
-            positions.Add(currentPosition);
-            line.positionCount = positions.Count;
-            line.SetPositions(positions.ToArray());
-
-            myTransform.LookAt(currentPosition + rigidbody.velocity.normalized);
-            previousPosition = currentPosition;
-        }
-
-        ManageMotionGiver();
+       
         /*Collider[] colliders = Physics.OverlapSphere(currentPosition, 1);
         for (int i = 0; i < colliders.Length; i++)
         {
@@ -181,41 +190,75 @@ public class BallHexPainter : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        //return;
-        if (collision.collider != null && collision.collider.transform.parent!=null)
+        if (GameManager.GameState == GameStates.GameOver)
         {
-            
+            return;
+        }
+
+
+        Enemy enemy = collision.collider.transform.GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            StartCoroutine(Die());
+            return;
+        }
+        else if ( collision.collider.transform.parent != null)
+        {
             Hex hex = collision.collider.transform.parent.GetComponent<Hex>();
             if (hex != null)
             {
-                bool playBounceAnimation = false;
-                bool isHard = hex.IsHard;
-                if (hex.State == HexStates.Full || isHard)
-                {
-                    if (isHard)
-                    {
-                        hex.Soften();
-                    }
-                    Collide();
-                    playBounceAnimation = true;
-                }
+                 bool playBounceAnimation = false;
+                 bool isHard = hex.IsHard;
+                 if (hex.State == HexStates.Full || isHard)
+                 {
+                     if (isHard)
+                     {
+                         hex.Soften();
+                     }
+                     Collide();
+                     playBounceAnimation = true;
+                 }
 
-                if (playBounceAnimation)
-                {
-                    DoCollisionViewStuff(isHard);
-                }
-
+                 if (playBounceAnimation)
+                 {
+                     DoCollisionViewStuff(isHard);
+                 }   
             }
             else
             {
-                Enemy enemy = collision.collider.transform.parent.GetComponent<Enemy>();
+                enemy = collision.collider.transform.parent.GetComponent<Enemy>();
                 if (enemy != null)
                 {
-                    Debug.Log("You lost!");
-                    gameObject.SetActive(false);
+                    StartCoroutine(Die());
                 }
             }
         }       
+    }
+
+    private IEnumerator Die()
+    {
+        GameManager.GameState = GameStates.GameOver;
+        Debug.Log("You lost!");
+        StartCoroutine(Blink());
+
+        yield return new WaitForSeconds(0.5f);
+        HexCoordinates coordinates = Hex.GetHexCoordinates(transform.position);
+        HexMap.PlayLoseScene( HexMap.GetHex(coordinates));
+        //gameObject.SetActive(false);
+    }
+    [SerializeField] private MeshRenderer renderer;
+    private IEnumerator Blink()
+    {
+        float blinkRate = 0.06f;
+        while (true)
+        {
+            renderer.enabled = false;
+            yield return new WaitForSeconds(blinkRate);
+            renderer.enabled = true;
+            yield return new WaitForSeconds(blinkRate);
+
+        }
+
     }
 
     private int frameCount;

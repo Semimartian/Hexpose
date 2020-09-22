@@ -24,7 +24,7 @@ public enum HexTypes : byte
 
 public enum HexStates:byte
 {
-    Empty = 0,Full=1, PotentiallyFull=2, AwaitingFill=3//, Hard
+    Empty = 0,Full=1, PotentiallyFull=2, AwaitingFill=3, MarkedForFailure=4, FullOfFailure = 5,
 }
 
 public class Hex : MonoBehaviour
@@ -46,6 +46,8 @@ public class Hex : MonoBehaviour
 
     private Hex[] neighbours;
     private ushort materialIndex;
+    private byte failureMaterialIndex;
+
 
     /* public  byte Q;
     public  byte R;*/
@@ -64,16 +66,20 @@ public class Hex : MonoBehaviour
     private static readonly float HEX_SIZE_MULTIPLIER = 1f;
     public static readonly float HEX_LOW_Y = 0;
     private const float HEX_HIGH_Y = 2.6f;
-    private const float RISE_PER_SECOND = 8f;
-    private const float FALL_PER_SECOND = 10f;
+    private const float FILL_RISE_PER_SECOND = 8f;
+    private const float FILL_RISE_RANDOMISER = 3f;
+    private const float FAIL_RISE_PER_SECOND = 6f;
+    private const float FAIL_RISE_RANDOMISER = 4f;
+    private const float FALL_PER_SECOND = 9f;
 
     #endregion
     // [SerializeField]int s;
-    public void Construct(/*int q, int r,*/ ushort materialIndex )
+    public void Construct(/*int q, int r,*/ ushort materialIndex,byte failureMatIndex )
     {
         SetMaterial(HexMap.instance.emptyHexMat);
         transform.localScale = HEX_SIZE_MULTIPLIER * Vector3.one;
         this.materialIndex = materialIndex;
+        this.failureMaterialIndex = failureMatIndex;
         /* Q = (byte)q;
         R = (byte)r;*/
         //s = S();
@@ -157,7 +163,7 @@ public class Hex : MonoBehaviour
     }
 
     private static readonly float AWIATING_FILL_MAX_DELAY =
-        HexMap.ABSTRACT_PLAYER ? 0.32f : 0.44f;
+        GameManager.ABSTRACT_PLAYER ? 0.32f : 0.44f;
 
     private IEnumerator MarkAsAwiatingFill()
     {
@@ -176,14 +182,22 @@ public class Hex : MonoBehaviour
 
     private void Fill()
     {
-        StartCoroutine(Rise());
+        StartCoroutine(Rise(FILL_RISE_PER_SECOND + 
+            UnityEngine.Random.Range(-FILL_RISE_RANDOMISER, FILL_RISE_RANDOMISER)));
         SetMaterial(HexMap.instance.GetHexColouredMaterial(materialIndex));
+    }
+
+    private void FillWithFailure()
+    {
+        StartCoroutine(Rise(FAIL_RISE_PER_SECOND +
+              UnityEngine.Random.Range(-FAIL_RISE_RANDOMISER, FAIL_RISE_RANDOMISER)));
+        SetMaterial(HexMap.instance.GetFailureColouredMaterial(failureMaterialIndex));
     }
 
     public void Harden()
     {
         isHard = true;
-        StartCoroutine(Rise());
+        StartCoroutine(Rise(12));
         SetMaterial(HexMap.instance.hardHexMat);
     }
 
@@ -198,6 +212,12 @@ public class Hex : MonoBehaviour
         StartCoroutine(Fall());
         SetMaterial(HexMap.instance.emptyHexMat);
     }
+
+    private void MarkForFailure()
+    {
+        SetMaterial(HexMap.instance.failureMarkHexMat);
+    }
+    
 
     public void ChangeState(HexStates state)
     {
@@ -218,18 +238,24 @@ public class Hex : MonoBehaviour
             case HexStates.Full:
                 Fill();
                 break;
-           /* case HexStates.Hard:
-                Harden();
-                break;*/
+            /* case HexStates.Hard:
+                 Harden();
+                 break;*/
             case HexStates.Empty:
                 MarkAsEmpty();
+                break;
+            case HexStates.MarkedForFailure:
+                MarkForFailure();
+                break;
+            case HexStates.FullOfFailure:
+                FillWithFailure();
                 break;
         }
     }
 
-    private IEnumerator Rise()
+    private IEnumerator Rise(float speed)
     {
-        float speed = RISE_PER_SECOND + UnityEngine.Random.Range(-3f, 3f);
+        //float speed = RISE_PER_SECOND + UnityEngine.Random.Range(-3f, 3f);
         //yield return new WaitForSeconds(UnityEngine.Random.Range(0, 0.18f));
         //if (false)
         {
@@ -273,13 +299,16 @@ public class Hex : MonoBehaviour
         for (int i = 0; i < collidersOnTop.Length; i++)
         {
             Collider collider = collidersOnTop[i];
-            if (collider.transform.parent != null)
+            Enemy enemy = collider.transform.GetComponent<Enemy>();
+
+            if (collider.transform.parent != null && enemy == null)
             {
-                Enemy enemy = collider.transform.parent.GetComponent<Enemy>();
-                if (enemy != null)
-                {
-                    enemy.Die(transform);
-                }
+                 enemy = collider.transform.parent.GetComponent<Enemy>();
+            }
+
+            if (enemy != null)
+            {
+                enemy.Die(transform);
             }
         }
        

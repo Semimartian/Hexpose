@@ -4,8 +4,11 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
+    [SerializeField] protected Rigidbody rigidbody;
+    protected bool isAlive = true;
     public void Die(Transform parent)
     {
+        isAlive = false;
         transform.parent = parent;
         StartCoroutine(DeathSceneCoroutine());
         Debug.Log("Enemy down!");

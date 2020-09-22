@@ -21,12 +21,20 @@ public class HexMap : MonoBehaviour
     public Material highLightedHexMat;
     public Material awaitingFillHexMat;
     public Material hardHexMat;
+    public Material failureMarkHexMat;
     [SerializeField] private Material dynamicColourMat;
+
 
     [SerializeField] Material[] hexColouredMaterials;
     [SerializeField] private List<Material> dynamicHexColouredMaterials = new List<Material>();
+    [SerializeField] private float backgroundColourThreshold = 8f;
+    [SerializeField] private Texture2D backGroundTexture;
+
+    [SerializeField] private List<Material> dynamicFailureColouredMaterials = new List<Material>();
+    [SerializeField] private float failureColourThreshold = 16f;
+    [SerializeField] private Texture2D FailureTexture;
+
     [SerializeField] private bool useDynamicColours = true;
-    [SerializeField] private float DynamicColoursDifferenceThreshold = 0.1f;
 
     public static HexMap instance;
     private Vector3 mapCentre;
@@ -105,6 +113,14 @@ public class HexMap : MonoBehaviour
 
     }
 
+    public Material GetFailureColouredMaterial(byte index)
+    {
+
+         return dynamicFailureColouredMaterials[index];
+
+    }
+    
+
     public void GenerateMap()
     {
         if (mapWasGenerated)
@@ -144,7 +160,7 @@ public class HexMap : MonoBehaviour
                     //Find Mat
                     ushort bestMatIndex;
                     {
-                        Color32 bestColour = GetBackgroundColourFromBounds(hexPosition, zoneBounds);
+                        Color32 bestColour = GetBackgroundColourFromBounds(hexPosition, zoneBounds,backGroundTexture);
                         if (useDynamicColours)
                         {
                             ushort? index = FindClosestDynamicMaterial(bestColour);
@@ -168,8 +184,27 @@ public class HexMap : MonoBehaviour
                        
                     }
 
+                    byte bestFailureMatIndex;
+                    {
+                        Color32 bestColour =
+                            GetBackgroundColourFromBounds(hexPosition, zoneBounds, FailureTexture );
+
+                          byte? index = FindClosestFailureDynamicMaterial(bestColour);
+                          if (index == null)
+                          {
+                              Material mat = new Material(dynamicColourMat);
+                              mat.color = bestColour;
+                              dynamicFailureColouredMaterials.Add(mat);
+                            bestFailureMatIndex = (byte)(dynamicFailureColouredMaterials.Count - 1);
+                          }
+                          else
+                          {
+                              bestFailureMatIndex = (byte)index;
+                          }
+                    }
+
                     Hex hex = Instantiate(hexPreFab);
-                    hex.Construct(bestMatIndex);
+                    hex.Construct(bestMatIndex, bestFailureMatIndex);
                     hex.transform.position = hexPosition;
                     hexes[column, row] = hex;
                     realHexesList.Add(hex);
@@ -259,25 +294,80 @@ public class HexMap : MonoBehaviour
 
     }
 
-    [SerializeField] private Texture2D backGroundTexture;
+    public static void PlayLoseScene(Hex origin)
+    {
+        instance.StartCoroutine(instance.PlayLoseSceneCoRoutine(origin));
+
+    }
+
+    private IEnumerator PlayLoseSceneCoRoutine(Hex origin)
+    {
+        //ClearFloodFillMap();
+        float waitTime = 0.03f;
+        List<Hex> hexesInRange = new List<Hex>(32);
+        origin.ChangeState(HexStates.MarkedForFailure);
+        hexesInRange.Add(origin);
+        bool newHexesFound = true;
+        while(newHexesFound)
+        {
+            newHexesFound = false;
+            yield return new WaitForSeconds(waitTime);
+            int count = hexesInRange.Count;
+            for (int j = 0; j < count; j++)
+            {
+
+                Hex[] neighbours = hexesInRange[j].GetNeighbours();
+                for (int n = 0; n < neighbours.Length; n++)
+                {
+                    Hex neighbour = neighbours[n];
+
+                    if (neighbour.State != HexStates.MarkedForFailure)// || neighbour.State == HexStates.PotentiallyFull )
+                    {
+                        neighbour.ChangeState(HexStates.MarkedForFailure);
+                        hexesInRange.Add(neighbour);
+                        newHexesFound = true;
+
+                    }
+
+                }
+            }
+        }
+        //Debug.Log("Finished painting red");
+        yield return new WaitForSeconds(0.2f);
+
+        for (int i = 0; i < realHexes.Length; i++)
+        {
+            realHexes[i].ChangeState(HexStates.FullOfFailure);
+        }
+
+
+        Enemy[] enemies = FindObjectsOfType<Enemy>();
+        for (int i = 0; i < enemies.Length; i++)
+        {
+            Destroy(enemies[i].gameObject);
+        }
+        Destroy(FindObjectOfType<BallHexPainter>().gameObject);
+    }
+
+
+
 
     #region Hex Material Finding:
 
-    private Color32 GetBackgroundColourFromBounds(Vector3 point, Bounds bounds)
+    private Color32 GetBackgroundColourFromBounds(Vector3 point, Bounds bounds,Texture2D texture)
     {
         float x = (point.x - bounds.min.x) / (bounds.max.x - bounds.min.x);
         float y = (point.z - bounds.min.z) / (bounds.max.z - bounds.min.z);
-        return GetBackgroundColour(x, y);
+        return texture.GetPixelBilinear(x, y);
+        //return GetBackgroundColour(x, y);
        // Bounds normalisedBounds = new Bounds();
         //float maxX = bounds.max.x;
     }
 
-    private Color32 GetBackgroundColour(float x, float y)
+   /* private Color32 GetBackgroundColour(float x, float y, Texture texture)
     {
-        Texture2D texture = backGroundTexture;// renderer.material.mainTexture;
-        return texture.GetPixelBilinear(x, y);
-       
-    }
+        return texture.GetPixelBilinear(x, y);      
+    }*/
 
     private byte FindClosestMaterialIndex(Color32 colour)
     {
@@ -322,13 +412,43 @@ public class HexMap : MonoBehaviour
                 closestMatIndex = i;
             }
         }
-        if (bestDifference > DynamicColoursDifferenceThreshold)
+        if (bestDifference > backgroundColourThreshold)
         {
             closestMatIndex = null;
         }
 
       /*  Debug.Log(("bestDifference: " + bestDifference.ToString())+ 
             (closestMatIndex!=null?"Colour found": "Colour NOT found"));*/
+        return closestMatIndex;
+
+    }
+
+    private byte? FindClosestFailureDynamicMaterial(Color32 colour)
+    {
+        byte? closestMatIndex = null;
+        float bestDifference = 12901212;
+
+        for (byte i = 0; i < dynamicFailureColouredMaterials.Count; i++)
+        {
+            Color32 matColour = dynamicFailureColouredMaterials[i].color;
+            float RDifference = Mathf.Abs(colour.r - matColour.r);
+            float GDifference = Mathf.Abs(colour.g - matColour.g);
+            float BDifference = Mathf.Abs(colour.b - matColour.b);
+            float averageDifference =
+                (RDifference + GDifference + BDifference) / 3;
+            if (averageDifference < bestDifference)
+            {
+                bestDifference = averageDifference;
+                closestMatIndex = i;
+            }
+        }
+        if (bestDifference > failureColourThreshold)
+        {
+            closestMatIndex = null;
+        }
+
+        /*  Debug.Log(("bestDifference: " + bestDifference.ToString())+ 
+              (closestMatIndex!=null?"Colour found": "Colour NOT found"));*/
         return closestMatIndex;
 
     }
@@ -358,9 +478,9 @@ public class HexMap : MonoBehaviour
         }*/
 
         if (awaitingFill &&  
-            (!ABSTRACT_PLAYER || !BallHexPainter.isOnAPotentialWall))
+            (GameManager.ABSTRACT_PLAYER || !BallHexPainter.isOnAPotentialWall))
         {
-            Debug.Log("Complete Fill" );
+            Debug.Log("Complete Fill," + "isOnAPotentialWall:"+ BallHexPainter.isOnAPotentialWall);
             CompleteFill();
             awaitingFill = false;
         }
@@ -458,7 +578,9 @@ public class HexMap : MonoBehaviour
 
         if (floodFillSlicesSizes.Count < 2)
         {
-            Debug.Log("Number of slices has to be greater than 1 in order to fill the area");
+            int סבא = 7;
+           
+            //Debug.Log("Number of slices has to be greater than 1 in order to fill the area");
             return false;
         }
         else
@@ -477,7 +599,7 @@ public class HexMap : MonoBehaviour
 
             //List<Hex> hexesToFill = new List<Hex>();
 
-            if (ABSTRACT_PLAYER)
+            if (GameManager.ABSTRACT_PLAYER)
             {
                 for (int i = 0; i < realHexes.Length; i++)
                 {
@@ -529,19 +651,18 @@ public class HexMap : MonoBehaviour
         yield return new WaitForSeconds(seconds);
 
         awaitingFill = true;
-        if (!ABSTRACT_PLAYER)
+        if (!GameManager.ABSTRACT_PLAYER)
         {
             BallHexPainter.instance.FloorCheck();
         }
 
     }
    // [SerializeField] private bool abstractPlayer =true;
-    public static readonly bool ABSTRACT_PLAYER = true;// instance.abstractPlayer;
 
     private static void CompleteFill()
     {
         bool playSound = false;
-        bool abstractPlayer = ABSTRACT_PLAYER;
+        bool abstractPlayer = GameManager.ABSTRACT_PLAYER;
         for (int i = 0; i < realHexes.Length; i++)
         {
             Hex hex = realHexes[i];

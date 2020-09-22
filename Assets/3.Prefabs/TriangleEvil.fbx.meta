@@ -1,11 +1,17 @@
 fileFormatVersion: 2
-guid: 7d5a825f9d9c3b844b3bd4d04a9eb38b
+guid: 41a886815a2840d4384526fc65b177d2
 ModelImporter:
   serializedVersion: 19300
   internalIDToNameTable:
   - first:
-      74: -623603649343465320
-    second: Scene
+      74: -2889085019725202202
+    second: Action.001
+  - first:
+      74: -4071575995497797534
+    second: Triangle.001| RealTriangle
+  - first:
+      74: -3386003986627302253
+    second: Triangle.001|Action
   externalObjects: {}
   materials:
     materialImportMode: 1
@@ -92,7 +98,7 @@ ModelImporter:
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
-  avatarSetup: 1
+  avatarSetup: 0
   additionalBone: 0
   userData: 
   assetBundleName: 
