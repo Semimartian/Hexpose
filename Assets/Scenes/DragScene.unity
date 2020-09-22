@@ -690,11 +690,6 @@ PrefabInstance:
       propertyPath: m_Constraints
       value: 80
       objectReference: {fileID: 0}
-    - target: {fileID: 8015329937310300602, guid: d820def8369cc8e46b03fd70ce267b52,
-        type: 3}
-      propertyPath: m_IsKinematic
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 8563990711751367573, guid: d820def8369cc8e46b03fd70ce267b52,
         type: 3}
       propertyPath: m_Name
@@ -6153,7 +6148,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!135 &720521749
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -6809,12 +6804,106 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 78, y: 0, z: 0}
+--- !u!1 &989289929
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 989289931}
+  - component: {fileID: 989289930}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!135 &989289930
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 989289929}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!4 &989289931
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 989289929}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1101118414}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1098611497 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8563990711751367595, guid: f2d46ca17f7ab5e4b8699b087823c7f5,
     type: 3}
   m_PrefabInstance: {fileID: 214233546}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1101118412
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1101118414}
+  - component: {fileID: 1101118413}
+  m_Layer: 0
+  m_Name: HexPainter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1101118413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1101118412}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a11281bfa7ac65d4f808b10cb3082c54, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  overlapSphereCollider: {fileID: 989289930}
+  line: {fileID: 0}
+  animator: {fileID: 0}
+  collisionParticles: {fileID: 0}
+  UIObject: {fileID: 0}
+  camera: {fileID: 963194227}
+--- !u!4 &1101118414
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1101118412}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 61.6, y: 0.76, z: 3.95}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 989289931}
+  m_Father: {fileID: 0}
+  m_RootOrder: 14
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1145763254
 GameObject:
   m_ObjectHideFlags: 0
@@ -7850,7 +7939,7 @@ MonoBehaviour:
   bombGenerationChance: 22222
   hardHexGenerationChance: 120
   emptyHexMat: {fileID: 2100000, guid: 048695f5627f66849a9c800c9f6ac827, type: 2}
-  highLightedHexMat: {fileID: 2100000, guid: fc40ba11eeb895d4494f8ac6c1c4164e, type: 2}
+  highLightedHexMat: {fileID: 2100000, guid: b46c4abb1bd334a44b5f9c9ae0d29994, type: 2}
   awaitingFillHexMat: {fileID: 2100000, guid: fc40ba11eeb895d4494f8ac6c1c4164e, type: 2}
   hardHexMat: {fileID: 2100000, guid: c34ba5d49db9ac2419fcb327a16f6520, type: 2}
   dynamicColourMat: {fileID: 2100000, guid: bfa347315ba0887429acbe2766f011cb, type: 2}

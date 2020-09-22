@@ -61,7 +61,7 @@ public class Hex : MonoBehaviour
     private static readonly float HEX_WIDTH = HEX_HEIGHT * HEX_WIDTH_MULTIPLIER;
     private static readonly float HEX_HORIZONTAL_SPACING = HEX_WIDTH;
     private static readonly float HEX_VERTICAL_SPACING = HEX_HEIGHT * 0.75f;
-    private static readonly float HEX_SIZE_MULTIPLIER = 0.7f;
+    private static readonly float HEX_SIZE_MULTIPLIER = 1f;
     public static readonly float HEX_LOW_Y = 0;
     private const float HEX_HIGH_Y = 2.6f;
     private const float RISE_PER_SECOND = 8f;
@@ -156,9 +156,13 @@ public class Hex : MonoBehaviour
         SetMaterial(HexMap.instance.highLightedHexMat);
     }
 
+    private static readonly float AWIATING_FILL_MAX_DELAY =
+        HexMap.ABSTRACT_PLAYER ? 0.32f : 0.44f;
+
     private IEnumerator MarkAsAwiatingFill()
     {
-        yield return new WaitForSeconds(UnityEngine.Random.Range(0, 0.44f));
+         
+        yield return new WaitForSeconds(UnityEngine.Random.Range(0, AWIATING_FILL_MAX_DELAY));
         if(state == HexStates.AwaitingFill)
         {
             // if(UnityEngine.Random.Range(0, 6) == 0)
@@ -260,9 +264,12 @@ public class Hex : MonoBehaviour
         }
     }
 
+
+    private static readonly Vector3 OVERLAP_BOX_DIMENTIONS = Vector3.one * HEX_SIZE_MULTIPLIER * HEX_RADIUS;
     public void KillEnemiesOnTop()
     {
-        Collider[] collidersOnTop = Physics.OverlapBox(transform.position, Vector3.one);
+        Collider[] collidersOnTop = Physics.OverlapBox
+            (transform.position, OVERLAP_BOX_DIMENTIONS);
         for (int i = 0; i < collidersOnTop.Length; i++)
         {
             Collider collider = collidersOnTop[i];

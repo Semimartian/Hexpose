@@ -7,7 +7,7 @@ public class HexBomb : MonoBehaviour
     public Hex hex;
     private void OnTriggerEnter(Collider other)
     {
-        if (other.GetComponent<HexPainter>() != null)
+        if (other.GetComponent<BallHexPainter>() != null)
         {
 
             HexMap.PrepareHexExplosion(hex);

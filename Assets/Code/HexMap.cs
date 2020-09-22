@@ -357,9 +357,10 @@ public class HexMap : MonoBehaviour
             CalculateFill();
         }*/
 
-        if (awaitingFill &&  !HexPainter.isOnAPotentialWall)
+        if (awaitingFill &&  
+            (!ABSTRACT_PLAYER || !BallHexPainter.isOnAPotentialWall))
         {
-            Debug.Log("CompleteFill" + HexPainter.isOnAPotentialWall);
+            Debug.Log("Complete Fill" );
             CompleteFill();
             awaitingFill = false;
         }
@@ -396,11 +397,12 @@ public class HexMap : MonoBehaviour
 
     private static bool awaitingFill = false;
     private static int frameCount=0;
-    public static void CalculateFill()
+
+    public static bool CalculateFill()
     {
        if( Time.frameCount == frameCount)
        {
-            return;
+            return false;
        }
         frameCount = Time.frameCount;
         Debug.Log("CalculateFill");
@@ -442,14 +444,9 @@ public class HexMap : MonoBehaviour
                             fillsNext.Add(neighbour);
                         }
                     }
-                    // Debug.Log("currentID:" + currentID);
-                    floodFillSlicesSizes[currentID] += 1;//TODO: bad writing
 
-                    /* if (fy <= 0 || fx <= 0 || fx >= width - 1 || fy >= height - 1)//TODO: find out what this is all about
-                     {
-                         floodFillMap[fx, fy] = TRANSPARENT;
-                         continue;
-                     }*/
+                    floodFillSlicesSizes[currentID] += 1;
+
                 }
 
                 List<Hex> swap = fills;
@@ -462,6 +459,7 @@ public class HexMap : MonoBehaviour
         if (floodFillSlicesSizes.Count < 2)
         {
             Debug.Log("Number of slices has to be greater than 1 in order to fill the area");
+            return false;
         }
         else
         {
@@ -478,43 +476,77 @@ public class HexMap : MonoBehaviour
             }
 
             //List<Hex> hexesToFill = new List<Hex>();
-            for (int i = 0; i < realHexes.Length; i++)
+
+            if (ABSTRACT_PLAYER)
             {
-                Hex hex = realHexes[i];
-                sbyte fillMark = hex.fillMark;
-                if (hex.State == HexStates.PotentiallyFull||
-                   (fillMark >= 0 && fillMark != largestSliceID))
+                for (int i = 0; i < realHexes.Length; i++)
                 {
-                    hex.ChangeState(HexStates.AwaitingFill);
-                    //hexesToFill.Add(hex);
+                    Hex hex = realHexes[i];
+                    sbyte fillMark = hex.fillMark;
+                    if (hex.State != HexStates.PotentiallyFull &&
+                       (fillMark >= 0 && fillMark != largestSliceID))
+                    {
+                        hex.ChangeState(HexStates.AwaitingFill);
+                        //hexesToFill.Add(hex);
+                    }
                 }
             }
+            else
+            {
+                for (int i = 0; i < realHexes.Length; i++)
+                {
+                    Hex hex = realHexes[i];
+                    sbyte fillMark = hex.fillMark;
+                    if (hex.State == HexStates.PotentiallyFull ||
+                       (fillMark >= 0 && fillMark != largestSliceID))
+                    {
+                        hex.ChangeState(HexStates.AwaitingFill);
+                        //hexesToFill.Add(hex);
+                    }
+                }
 
-            instance.StartCoroutine(instance.AwaitFillIn());
+                AwaitFillIn(0.45f);
+            }
+
+            return true;
+            //instance.StartCoroutine(instance.AwaitFillIn());
+          
         }       
     }
 
-    IEnumerator AwaitFillIn()
+    public static void AwaitFillIn(float seconds)
+    {
+        instance.StartCoroutine(instance.AwaitFillInCoRoutine(seconds));
+    } 
+
+    private IEnumerator AwaitFillInCoRoutine(float seconds)
     {
         /*foreach (Hex hex in hexesToFill)
         {
             hex.ChangeState(HexStates.AwaitingFill);
             //yield return null;
         }*/
-        yield return new WaitForSeconds(0.45f);
+        yield return new WaitForSeconds(seconds);
 
         awaitingFill = true;
-        HexPainter.instance.FloorCheck();
-        yield return null;
+        if (!ABSTRACT_PLAYER)
+        {
+            BallHexPainter.instance.FloorCheck();
+        }
 
     }
+   // [SerializeField] private bool abstractPlayer =true;
+    public static readonly bool ABSTRACT_PLAYER = true;// instance.abstractPlayer;
+
     private static void CompleteFill()
     {
         bool playSound = false;
+        bool abstractPlayer = ABSTRACT_PLAYER;
         for (int i = 0; i < realHexes.Length; i++)
         {
             Hex hex = realHexes[i];
-            if (hex.State == HexStates.AwaitingFill)
+            if (hex.State == HexStates.AwaitingFill ||
+                (abstractPlayer&& hex.State == HexStates.PotentiallyFull))
             {
                 playSound = true;
                 hex.ChangeState(HexStates.Full);
@@ -527,12 +559,15 @@ public class HexMap : MonoBehaviour
         {
             Vector3 position = instance.mapCentre;
             SoundManager.PlayOneShotSoundAt(SoundNames.GroundUp, position);
-           // SoundManager.PlayOneShotSoundAt(SoundNames.LowGlocken, position);
+            // SoundManager.PlayOneShotSoundAt(SoundNames.LowGlocken, position);
 
         }
 
         UpdatePercentageUI();
     }
+
+
+
     #endregion
 
     [SerializeField] private TMPro.TextMeshProUGUI percentageUIText;

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.PlayerLoop;
 
-public class HexPainter : MonoBehaviour
+public class BallHexPainter : MonoBehaviour
 {
     private List<Vector3> positions = new List<Vector3>();
     private Vector3 previousPosition;
@@ -15,7 +15,7 @@ public class HexPainter : MonoBehaviour
     [SerializeField] private GameObject UIObject;
 
 
-    public static HexPainter instance;
+    public static BallHexPainter instance;
     private void Awake()
     {
         if (instance == null)
