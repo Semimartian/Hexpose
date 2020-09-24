@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class AbstractHexPainter : MonoBehaviour
 {
@@ -10,9 +11,12 @@ public class AbstractHexPainter : MonoBehaviour
     [SerializeField] private SphereCollider overlapSphereCollider;
 
     [SerializeField] private LineRenderer line;
-    [SerializeField] private Animator animator;
-    [SerializeField] private ParticleSystem collisionParticles;
-    [SerializeField] private GameObject UIObject;
+    [SerializeField] private Camera camera;
+
+    [SerializeField] private Transform fingerTransform;
+    [SerializeField] private Image fingerImage;
+    [SerializeField] private GameObject fingerWhileTouching;
+    [SerializeField] private GameObject fingerWhileHovering;
 
 
     public static AbstractHexPainter instance;
@@ -30,7 +34,6 @@ public class AbstractHexPainter : MonoBehaviour
 
     }
 
-    [SerializeField] private Camera camera;
     private Vector3 MouseToGroundPlane(Vector3 mousePosition)
     {
         //TODO: learn from this
@@ -42,30 +45,63 @@ public class AbstractHexPainter : MonoBehaviour
        
     }
 
+    private void Start()
+    {
+        /*Color colour = fingerImage.color;
+        colour.a = fingerAlphaWhileHovering;
+        fingerImage.color = colour;*/
+        fingerWhileHovering.SetActive(true);
+        fingerWhileTouching.SetActive(false);
+
+        Cursor.visible = false;
+    }
+
     private void Update()
     {
 
         if (Input.GetMouseButtonUp(1))
         {
-            HexMap.AwaitFillIn(0);
-        }
 
+            HexMap.AwaitFillIn(0);
+
+            /*Color colour = fingerImage.color;
+            colour.a = fingerAlphaWhileHovering;
+            fingerImage.color = colour;*/
+            fingerWhileHovering.SetActive(true);
+            fingerWhileTouching.SetActive(false);
+        }
+        else if (Input.GetMouseButtonDown(1))
+        {
+            /* Color colour = fingerImage.color;
+             colour.a = fingerAlphaWhileTouching;
+             fingerImage.color = colour;*/
+            fingerWhileHovering.SetActive(false);
+            fingerWhileTouching.SetActive(true);
+        }
+        Vector3 currentMouseGroundPosition = MouseToGroundPlane(Input.mousePosition);
+
+        Vector3 fingerPosition = camera.WorldToScreenPoint(currentMouseGroundPosition);
+        fingerTransform.position = fingerPosition;
     }
 
 
     private Vector3? previousMouseGroundPosition;
     private List<Vector3> groundPositions = new List<Vector3>();
-    private float interpolationDistance = 1.5f;
+    [SerializeField] private float interpolationDistance = 1.5f;
 
     private void FixedUpdate()
     {
         //TODO: compare interpolation to cake party's
+        Vector3 currentMouseGroundPosition = MouseToGroundPlane(Input.mousePosition);
+
+        /*Vector3 fingerPosition = camera.WorldToScreenPoint(currentMouseGroundPosition);
+        fingerTransform.position = fingerPosition;*/
 
         if (Input.GetMouseButton(1))
         {
             groundPositions.Clear();
-            Vector3 currentMouseGroundPosition = MouseToGroundPlane(Input.mousePosition);
             groundPositions.Add(currentMouseGroundPosition);
+
             if (previousMouseGroundPosition != null)
             {
                 Vector3 previousMouseGroundPosition = (Vector3)this.previousMouseGroundPosition;
@@ -121,7 +157,11 @@ public class AbstractHexPainter : MonoBehaviour
     public void FloorCheck(List<Vector3> positions,int currentPositionIndex)
     {
         bool changed = false;
-        for (int j = 0; j< positions.Count; j++)
+
+        int count = positions.Count;
+        Debug.Log("positions to check: " + count);
+        overlapSphereCollider.transform.position = positions[count-1];
+        for (int j = 0; j< count; j++)
         {
             Collider[] overlappingColliders =
                Physics.OverlapSphere(positions[j], overlapSphereCollider.radius);
@@ -146,11 +186,8 @@ public class AbstractHexPainter : MonoBehaviour
                                 {
                                     hex.ChangeState(HexStates.PotentiallyFull);
                                     changed = true;
-
                                 }
                                 break;
-                                /*case HexStates.Hard:
-                                     hex.ChangeState(HexStates.Empty); break;*/
 
                         }
 
@@ -159,7 +196,6 @@ public class AbstractHexPainter : MonoBehaviour
             }
         }
        
-        
         if (changed)
         {
 

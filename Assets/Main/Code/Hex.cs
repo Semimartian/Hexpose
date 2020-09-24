@@ -69,7 +69,7 @@ public class Hex : MonoBehaviour
     private static readonly float HEX_WIDTH = HEX_HEIGHT * HEX_WIDTH_MULTIPLIER;
     private static readonly float HEX_HORIZONTAL_SPACING = HEX_WIDTH;
     private static readonly float HEX_VERTICAL_SPACING = HEX_HEIGHT * 0.75f;
-    private static readonly float HEX_SIZE_MULTIPLIER = 0.85f;
+    private static readonly float HEX_SIZE_MULTIPLIER = 0.75f;
     public static readonly float HEX_LOW_Y = 0;
     private static readonly float HEX_HIGH_Y = GameManager.ABSTRACT_PLAYER ? 4f : 3.2f;//2.6f;
     private const float FILL_RISE_PER_SECOND = 8f;
@@ -336,12 +336,16 @@ public class Hex : MonoBehaviour
     }
 
 
-    private static readonly Vector3 OVERLAP_BOX_DIMENTIONS = 
-        Vector3.one * HEX_SIZE_MULTIPLIER * HEX_RADIUS;
+    /* private static readonly Vector3 OVERLAP_BOX_DIMENTIONS = 
+         Vector3.one * HEX_SIZE_MULTIPLIER * HEX_RADIUS;*/
+    private static readonly float OVERLAP_SPHERE_RADIUS = HEX_SIZE_MULTIPLIER * HEX_RADIUS;
     public void KillEnemiesOnTop()
     {
-        Collider[] collidersOnTop = Physics.OverlapBox
-            (transform.position, OVERLAP_BOX_DIMENTIONS);
+        Vector3 bottom = transform.position + (Vector3.up * -3);
+        Vector3 top = transform.position + (Vector3.up * 5);
+
+        Collider[] collidersOnTop = Physics.OverlapCapsule
+            (bottom, top, OVERLAP_SPHERE_RADIUS);
         for (int i = 0; i < collidersOnTop.Length; i++)
         {
             Collider collider = collidersOnTop[i];
@@ -357,8 +361,6 @@ public class Hex : MonoBehaviour
                 enemy.Die(transform);
             }
         }
-       
-        
     }
 }
 

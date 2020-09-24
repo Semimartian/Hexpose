@@ -11,6 +11,7 @@ public class WinScene : MonoBehaviour
         if (instance == null)
         {
             instance = this;
+            instance.gameObject.SetActive(false);
         }
         else
         {
@@ -34,6 +35,7 @@ public class WinScene : MonoBehaviour
     }
     public static void PlayScene()
     {
+        instance.gameObject.SetActive(true);
         instance.StartCoroutine(instance.PlayEffects());
     }
     [SerializeField] private ParticleSystem[] confeties;

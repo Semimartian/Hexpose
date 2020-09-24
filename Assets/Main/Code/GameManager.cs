@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public enum GameStates
 {
@@ -10,10 +11,10 @@ public enum GameStates
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] private bool abstractPlayer;
+    //[SerializeField] private bool abstractPlayer;
     private static GameManager instance ;
 
-    public static readonly bool ABSTRACT_PLAYER = false;//  instance.abstractPlayer;
+    public static readonly bool ABSTRACT_PLAYER = true;//  instance.abstractPlayer;
 
     private void Awake()
     {
@@ -61,6 +62,16 @@ public class GameManager : MonoBehaviour
                 }
                 break;
 
+        }
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.R) && Input.GetKey(KeyCode.LeftControl))
+        {
+            var scene = SceneManager.GetActiveScene();
+            
+            SceneManager.LoadScene(scene.buildIndex);
         }
     }
 }

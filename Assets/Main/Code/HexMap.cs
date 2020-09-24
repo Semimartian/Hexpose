@@ -27,11 +27,12 @@ public class HexMap : MonoBehaviour
 
     [SerializeField] private Material dynamicColourMat;
 
-
     [SerializeField] Material[] hexColouredMaterials;
     [SerializeField] private List<Material> dynamicHexColouredMaterials = new List<Material>();
     [SerializeField] private float backgroundColourThreshold = 8f;
     [SerializeField] private Texture2D backGroundTexture;
+
+
 
     [SerializeField] private List<Material> dynamicFailureColouredMaterials = new List<Material>();
     [SerializeField] private float failureColourThreshold = 16f;
@@ -118,9 +119,7 @@ public class HexMap : MonoBehaviour
 
     public Material GetFailureColouredMaterial(byte index)
     {
-
          return dynamicFailureColouredMaterials[index];
-
     }
     
 
@@ -298,7 +297,6 @@ public class HexMap : MonoBehaviour
     public static void PlayLoseScene(Hex origin)
     {
         instance.StartCoroutine(instance.PlayLoseSceneCoRoutine(origin));
-
     }
 
     private IEnumerator PlayLoseSceneCoRoutine(Hex origin)
@@ -309,7 +307,7 @@ public class HexMap : MonoBehaviour
         origin.ChangeState(HexStates.MarkedForFailure);
         hexesInRange.Add(origin);
         bool newHexesFound = true;
-        while(newHexesFound)
+        while (newHexesFound)
         {
             newHexesFound = false;
             yield return new WaitForSeconds(waitTime);
@@ -350,7 +348,86 @@ public class HexMap : MonoBehaviour
         Destroy(FindObjectOfType<BallHexPainter>().gameObject);
     }
 
+    public static void InfectPlayerPath(Hex origin)
+    {
+        GameManager.GameState = GameStates.BadGameOver;
+        instance.StartCoroutine(instance.InfectPlayerPathCoRoutine(origin));
+    }
 
+
+    private IEnumerator InfectPlayerPathCoRoutine(Hex origin)
+    {
+        //ClearFloodFillMap();
+        float waitTime = 0.025f;
+        List<Hex> hexesInRange = new List<Hex>(16);
+        origin.ChangeState(HexStates.MarkedForFailure);
+        hexesInRange.Add(origin);
+        bool newHexesFound = true;
+        while (newHexesFound)
+        {
+            newHexesFound = false;
+            yield return new WaitForSeconds(waitTime);
+            int count = hexesInRange.Count;
+            for (int j = 0; j < count; j++)
+            {
+
+                Hex[] neighbours = hexesInRange[j].GetNeighbours();
+                for (int n = 0; n < neighbours.Length; n++)
+                {
+                    Hex neighbour = neighbours[n];
+
+                    if (neighbour.State == HexStates.PotentiallyFull)// || neighbour.State == HexStates.PotentiallyFull )
+                    {
+                        neighbour.ChangeState(HexStates.MarkedForFailure);
+                        hexesInRange.Add(neighbour);
+                        newHexesFound = true;
+                    }
+                }
+            }
+        }
+
+        yield return new WaitForSeconds(0.6f);
+
+        waitTime = 0.035f;
+        newHexesFound = true;
+        while (newHexesFound)
+        {
+            newHexesFound = false;
+            yield return new WaitForSeconds(waitTime);
+            int count = hexesInRange.Count;
+            for (int j = 0; j < count; j++)
+            {
+
+                Hex[] neighbours = hexesInRange[j].GetNeighbours();
+                for (int n = 0; n < neighbours.Length; n++)
+                {
+                    Hex neighbour = neighbours[n];
+
+                    if (neighbour.State != HexStates.MarkedForFailure)// || neighbour.State == HexStates.PotentiallyFull )
+                    {
+                        neighbour.ChangeState(HexStates.MarkedForFailure);
+                        hexesInRange.Add(neighbour);
+                        newHexesFound = true;
+                    }
+                }
+            }
+        }
+
+        yield return new WaitForSeconds(0.2f);
+
+        for (int i = 0; i < realHexes.Length; i++)
+        {
+            realHexes[i].ChangeState(HexStates.FullOfFailure);
+        }
+
+
+        Enemy[] enemies = FindObjectsOfType<Enemy>();
+        for (int i = 0; i < enemies.Length; i++)
+        {
+            Destroy(enemies[i].gameObject);
+        }
+
+    }
     public static void PlayWinScene()
     {
         instance.StartCoroutine(instance.PlayWinSceneCoRoutine());
