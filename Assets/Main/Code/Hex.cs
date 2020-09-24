@@ -69,7 +69,7 @@ public class Hex : MonoBehaviour
     private static readonly float HEX_WIDTH = HEX_HEIGHT * HEX_WIDTH_MULTIPLIER;
     private static readonly float HEX_HORIZONTAL_SPACING = HEX_WIDTH;
     private static readonly float HEX_VERTICAL_SPACING = HEX_HEIGHT * 0.75f;
-    private static readonly float HEX_SIZE_MULTIPLIER = 1f;
+    private static readonly float HEX_SIZE_MULTIPLIER = 0.85f;
     public static readonly float HEX_LOW_Y = 0;
     private static readonly float HEX_HIGH_Y = GameManager.ABSTRACT_PLAYER ? 4f : 3.2f;//2.6f;
     private const float FILL_RISE_PER_SECOND = 8f;
@@ -120,10 +120,11 @@ public class Hex : MonoBehaviour
 
     public static HexCoordinates GetHexCoordinates(Vector3 position)
     {
+        position /= HEX_SIZE_MULTIPLIER;
         short r = (short)Mathf.RoundToInt
-            (/*(float)Mathf.CeilToInt*/(position.z) / HEX_VERTICAL_SPACING);
+            ((position.z ) / HEX_VERTICAL_SPACING);
         short q = (short)Mathf.RoundToInt
-            ((/*(float)Mathf.CeilToInt*/(position.x) / HEX_HORIZONTAL_SPACING) - (r / 2f));
+            (((position.x ) / HEX_HORIZONTAL_SPACING) - (r / 2f));
 
         return new HexCoordinates(q, r);
     }
@@ -194,6 +195,14 @@ public class Hex : MonoBehaviour
         StartCoroutine(Rise(FILL_RISE_PER_SECOND + 
             UnityEngine.Random.Range(-FILL_RISE_RANDOMISER, FILL_RISE_RANDOMISER)));
         SetMaterial(HexMap.instance.GetHexColouredMaterial(materialIndex));
+    }
+
+    public void WinFill()
+    {
+        StartCoroutine(Rise(FAIL_RISE_PER_SECOND +
+             UnityEngine.Random.Range(-FAIL_RISE_RANDOMISER, FAIL_RISE_RANDOMISER)));
+        SetMaterial(HexMap.instance.GetHexColouredMaterial(materialIndex));
+
     }
 
     private void FillWithFailure()
@@ -327,7 +336,8 @@ public class Hex : MonoBehaviour
     }
 
 
-    private static readonly Vector3 OVERLAP_BOX_DIMENTIONS = Vector3.one * HEX_SIZE_MULTIPLIER * HEX_RADIUS;
+    private static readonly Vector3 OVERLAP_BOX_DIMENTIONS = 
+        Vector3.one * HEX_SIZE_MULTIPLIER * HEX_RADIUS;
     public void KillEnemiesOnTop()
     {
         Collider[] collidersOnTop = Physics.OverlapBox

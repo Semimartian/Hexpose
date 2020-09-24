@@ -10,7 +10,25 @@ public enum GameStates
 
 public class GameManager : MonoBehaviour
 {
-    public static readonly bool ABSTRACT_PLAYER = false;// instance.abstractPlayer;
+    [SerializeField] private bool abstractPlayer;
+    private static GameManager instance ;
+
+    public static readonly bool ABSTRACT_PLAYER = false;//  instance.abstractPlayer;
+
+    private void Awake()
+    {
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Debug.LogError("Tried to instantiate more than one map!");
+            return;
+        }
+
+        GameState = GameStates.Intro;
+    }
 
     private static GameStates DT_gameState;
     public static GameStates GameState
@@ -32,11 +50,6 @@ public class GameManager : MonoBehaviour
 
     }
 
-    private void Awake()
-    {
-        GameState = GameStates.Intro;
-    }
-
     private static void DoOnGameStateChange()
     {
         switch (GameState)
@@ -44,8 +57,10 @@ public class GameManager : MonoBehaviour
             case GameStates.GoodGameOver:
                 {
                     WinScene.PlayScene();
+                    HexMap.PlayWinScene();
                 }
                 break;
+
         }
     }
 }

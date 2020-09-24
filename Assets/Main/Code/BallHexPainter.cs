@@ -124,7 +124,7 @@ public class BallHexPainter : MonoBehaviour
 
     [SerializeField] private float pushForce =55f;
     [SerializeField] private Camera camera;
-     
+    bool ballSentOnce = false;
     private void ManageMotionGiver()
     {
         Vector3 mouseScreenPosition = Input.mousePosition;
@@ -149,7 +149,11 @@ public class BallHexPainter : MonoBehaviour
             //rigidbody.rotation = Quaternion.Euler(Vector3.zero);
             rigidbody.AddForce(force,ForceMode.Impulse);
             UIObject.SetActive(false);
-            SoundManager.PlayOneShotSoundAt(SoundNames.BallSent, myTransform.position);
+            if(!ballSentOnce)
+            {
+                SoundManager.PlayOneShotSoundAt(SoundNames.BallSent, myTransform.position);
+                ballSentOnce = true;
+            }
         }
     }
 

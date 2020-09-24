@@ -1,0 +1,23 @@
+fileFormatVersion: 2
+guid: b2da299bd918ff644a5ebc387de77260
+TrueTypeFontImporter:
+  externalObjects: {}
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Nanami 3D
+  fontNames:
+  - Nanami 3D
+  fallbackFontReferences:
+  - {fileID: 12800000, guid: 992ccafa34bbdcf43b9d4a16077e7873, type: 3}
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  useLegacyBoundsCalculation: 0
+  shouldRoundAdvanceValue: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

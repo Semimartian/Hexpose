@@ -350,6 +350,33 @@ public class HexMap : MonoBehaviour
         Destroy(FindObjectOfType<BallHexPainter>().gameObject);
     }
 
+
+    public static void PlayWinScene()
+    {
+        instance.StartCoroutine(instance.PlayWinSceneCoRoutine());
+
+    }
+
+    private IEnumerator PlayWinSceneCoRoutine()
+    {
+        yield return new WaitForSeconds(2.5f);
+
+        for (int i = 0; i < realHexes.Length; i++)
+        {
+            realHexes[i].WinFill();
+        }
+
+
+        Enemy[] enemies = FindObjectsOfType<Enemy>();
+        for (int i = 0; i < enemies.Length; i++)
+        {
+            Destroy(enemies[i].gameObject);
+        }
+        Destroy(FindObjectOfType<BallHexPainter>().gameObject);
+
+        yield return null;
+
+    }
     #region Hex Material Finding:
 
     private Color32 GetBackgroundColourFromBounds(Vector3 point, Bounds bounds,Texture2D texture)
@@ -694,7 +721,7 @@ public class HexMap : MonoBehaviour
 
     #endregion
 
-    [SerializeField] private TMPro.TextMeshProUGUI percentageUIText;
+    [SerializeField] private UpdatableText percentageUIText;
 
     private static float fullPercentage;
     [SerializeField] private float winPercentage = 80;
@@ -712,10 +739,11 @@ public class HexMap : MonoBehaviour
         float percentage = ((float)fullHexes / (float)hexCount) * 100f;
         fullPercentage = percentage;
 
-        string text = fullHexes.ToString() + "/" + hexCount.ToString() + "\n" +
-           percentage.ToString("f1") + "%";
+        string text = //fullHexes.ToString() + "/" + hexCount.ToString() + "\n" +
+           percentage.ToString("f0") + "%";
 
-        instance.percentageUIText.text = text;
+        instance.percentageUIText.ChangeText( text);
+
     }
 
     public static void PrepareHexExplosion(Hex origin)
