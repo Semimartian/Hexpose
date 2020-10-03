@@ -21,6 +21,7 @@ public class FreeRoamingEnemy : Enemy
     {
         if (GameManager.GameOver || !isAlive)
         {
+           // Debug.Log("Stopped");
             rigidbody.velocity = Vector3.zero;
         }
         else

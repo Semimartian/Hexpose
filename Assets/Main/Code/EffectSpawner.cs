@@ -24,7 +24,7 @@ public class EffectSpawner : MonoBehaviour
     private static List<ParticleSystem> particleSystemsInUse = new List<ParticleSystem>();
     public static void SpawnEnemyDeathEffect(Vector3 placeOfDeath)
     {
-
+        SoundManager.PlayOneShotSoundAt(SoundNames.EnemyDeath, placeOfDeath);
         ParticleSystem particleSystem =
             Instantiate(instance.EnemyDeathParticleSystemPreFab, placeOfDeath, Quaternion.identity);
         particleSystem.Play();

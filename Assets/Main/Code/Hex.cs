@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 //using System;
 //using System.Linq;
@@ -24,7 +23,8 @@ public enum HexTypes : byte
 
 public enum HexStates:byte
 {
-    Empty = 0,Full=1, PotentiallyFull=2, AwaitingFill=3, MarkedForFailure=4, FullOfFailure = 5,
+    Empty = 0,Full=1, Path=2, AwaitingFill=3,
+    MarkedForFailure =4, FullOfFailure = 5, Bombed=6,
 }
 
 public enum HexSpecialties : byte
@@ -69,9 +69,12 @@ public class Hex : MonoBehaviour
     private static readonly float HEX_WIDTH = HEX_HEIGHT * HEX_WIDTH_MULTIPLIER;
     private static readonly float HEX_HORIZONTAL_SPACING = HEX_WIDTH;
     private static readonly float HEX_VERTICAL_SPACING = HEX_HEIGHT * 0.75f;
-    private static readonly float HEX_SIZE_MULTIPLIER = 0.75f;
+    private static readonly float HEX_SIZE_MULTIPLIER = 0.72f; //0.84f;//0.8f;
     public static readonly float HEX_LOW_Y = 0;
-    private static readonly float HEX_HIGH_Y = GameManager.ABSTRACT_PLAYER ? 4f : 3.2f;//2.6f;
+    private static readonly float HEX_HIGH_Y = GameManager.ABSTRACT_PLAYER ? 4f : 3f;//2.6f;
+    public static readonly float HEX_PRESSED_Y = -3.3f;
+
+    public const float PRESSED_RISE_PER_SECOND = 3f;
     private const float FILL_RISE_PER_SECOND = 8f;
     private const float FILL_RISE_RANDOMISER = 3f;
     private const float FAIL_RISE_PER_SECOND = 6f;
@@ -82,7 +85,7 @@ public class Hex : MonoBehaviour
     // [SerializeField]int s;
     public void Construct(/*int q, int r,*/ ushort materialIndex,byte failureMatIndex )
     {
-        SetMaterial(HexMap.instance.emptyHexMat);
+        SetMaterial(HexMap.instance.GetEmptyHexMaterial());
         transform.localScale = HEX_SIZE_MULTIPLIER * Vector3.one;
         this.materialIndex = materialIndex;
         this.failureMaterialIndex = failureMatIndex;
@@ -93,7 +96,7 @@ public class Hex : MonoBehaviour
 
     private void SetMaterial(Material mat)
     {
-        GetComponentInChildren<MeshRenderer>().material = mat;
+        GetComponent<MeshRenderer>().material = mat;
     }
     /* public static short GetNewSignature()
      {
@@ -192,6 +195,7 @@ public class Hex : MonoBehaviour
 
     private void Fill()
     {
+        specialty = HexSpecialties.None;
         StartCoroutine(Rise(FILL_RISE_PER_SECOND + 
             UnityEngine.Random.Range(-FILL_RISE_RANDOMISER, FILL_RISE_RANDOMISER)));
         SetMaterial(HexMap.instance.GetHexColouredMaterial(materialIndex));
@@ -255,14 +259,18 @@ public class Hex : MonoBehaviour
     private void MarkAsEmpty()
     {
         StartCoroutine(Fall());
-        SetMaterial(HexMap.instance.emptyHexMat);
+        SetMaterial(HexMap.instance.GetEmptyHexMaterial());
     }
 
     private void MarkForFailure()
     {
         SetMaterial(HexMap.instance.failureMarkHexMat);
     }
-    
+
+    private void MarkForBombing()
+    {
+        SetMaterial(HexMap.instance.BombHexMat);
+    }
 
     public void ChangeState(HexStates state)
     {
@@ -274,7 +282,7 @@ public class Hex : MonoBehaviour
         this.state = state;
         switch (state)
         {
-            case HexStates.PotentiallyFull:
+            case HexStates.Path:
                 MarkAsPotentiallyFull();
                 break;
             case HexStates.AwaitingFill:
@@ -295,6 +303,9 @@ public class Hex : MonoBehaviour
             case HexStates.FullOfFailure:
                 FillWithFailure();
                 break;
+            case HexStates.Bombed:
+                MarkForBombing();
+                break;
         }
     }
 
@@ -305,6 +316,8 @@ public class Hex : MonoBehaviour
         //if (false)
         {
             Transform myTransform = transform;
+            //HexMap.RemoveLowHexTransform(myTransform);//TODO This one was causing massive lags
+
             while (myTransform.position.y < HEX_HIGH_Y)
             {
                 myTransform.position += Vector3.up * speed * Time.deltaTime;
@@ -339,7 +352,7 @@ public class Hex : MonoBehaviour
     /* private static readonly Vector3 OVERLAP_BOX_DIMENTIONS = 
          Vector3.one * HEX_SIZE_MULTIPLIER * HEX_RADIUS;*/
     private static readonly float OVERLAP_SPHERE_RADIUS = HEX_SIZE_MULTIPLIER * HEX_RADIUS;
-    public void KillEnemiesOnTop()
+   /* private void KillEnemiesOnTop()
     {
         Vector3 bottom = transform.position + (Vector3.up * -3);
         Vector3 top = transform.position + (Vector3.up * 5);
@@ -361,6 +374,6 @@ public class Hex : MonoBehaviour
                 enemy.Die(transform);
             }
         }
-    }
+    }*/
 }
 

@@ -732,6 +732,12 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f2d46ca17f7ab5e4b8699b087823c7f5, type: 3}
+--- !u!4 &267518407 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 116441527122656847, guid: e9bafe84177bcc34cb50ab49b690c04b,
+    type: 3}
+  m_PrefabInstance: {fileID: 5476883991121361341}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &344628845
 GameObject:
   m_ObjectHideFlags: 0
@@ -6042,7 +6048,7 @@ RectTransform:
   m_Children:
   - {fileID: 1278865421}
   m_Father: {fileID: 0}
-  m_RootOrder: 21
+  m_RootOrder: 20
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -6132,7 +6138,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d9dd1c7acbfbdc740b71e615a87af527, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  abstractPlayer: 0
 --- !u!4 &562246732
 Transform:
   m_ObjectHideFlags: 0
@@ -6634,7 +6639,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 720521748}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 61.6, y: 0.76, z: 3.95}
+  m_LocalPosition: {x: 61.6, y: 0.76, z: 4.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 1343525690}
@@ -7134,6 +7139,14 @@ MonoBehaviour:
     minPitch: 1
     maxPitch: 1
     volumeModifier: 0
+  - name: 7
+    audioClips:
+    - clip: {fileID: 8300000, guid: 30485c5df285201409ddec87df6d3029, type: 3}
+      volume: 1
+      ignoreMe: 0
+    minPitch: 0.9
+    maxPitch: 1.1
+    volumeModifier: 0
   - name: 3
     audioClips:
     - clip: {fileID: 8300000, guid: e47bae1010109bd49adc70f864188052, type: 3}
@@ -7352,6 +7365,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: DeepHexModelPreFab
+      objectReference: {fileID: 0}
+    - target: {fileID: 1613968022246084993, guid: 698344f81708192479aef7f70f40ed75,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2944111884547581033, guid: 698344f81708192479aef7f70f40ed75,
         type: 3}
@@ -8625,6 +8643,7 @@ Transform:
   - {fileID: 552139681}
   - {fileID: 989392222}
   - {fileID: 945945791}
+  - {fileID: 267518407}
   m_Father: {fileID: 0}
   m_RootOrder: 15
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -9063,7 +9082,7 @@ PrefabInstance:
     - target: {fileID: 4746611749090392789, guid: 015ed5b1e77b9104bbe9397046d48e21,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: 49
+      value: 50.99
       objectReference: {fileID: 0}
     - target: {fileID: 4746611749090392789, guid: 015ed5b1e77b9104bbe9397046d48e21,
         type: 3}
@@ -9261,30 +9280,38 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mapZone: {fileID: 664511414}
-  hexPreFab: {fileID: 1728323476024703329, guid: 698344f81708192479aef7f70f40ed75,
+  hexPreFab: {fileID: 1728323476024703329, guid: c069dca6f3b45414f8a62abbb74f2181,
     type: 3}
   hexBombPreFab: {fileID: 2640719696752284693, guid: 2d5a0b2d1e7a6a245b3394771d0501da,
     type: 3}
   bombGenerationChance: 222222
   hardHexGenerationChance: 120
   enemyHexGenerationChance: 222222
-  emptyHexMat: {fileID: 2100000, guid: 048695f5627f66849a9c800c9f6ac827, type: 2}
+  emptyHexMats:
+  - {fileID: 2100000, guid: f6b4e2557aaffd943a376815b8dc0bbc, type: 2}
+  - {fileID: 2100000, guid: 048695f5627f66849a9c800c9f6ac827, type: 2}
+  - {fileID: 2100000, guid: 2ea4bd8af66e4ff43a2064701aed8d1e, type: 2}
+  - {fileID: 2100000, guid: 32d329e1f0772514faff598114712b2d, type: 2}
+  - {fileID: 2100000, guid: 7b1394b2b2101c34c9bc63340ed53117, type: 2}
+  - {fileID: 2100000, guid: 8919a7e8b62d0cf49b6e757fc54f7353, type: 2}
+  - {fileID: 2100000, guid: 15d82139c3d729648a4c8583731aa3e5, type: 2}
   highLightedHexMat: {fileID: 2100000, guid: fc40ba11eeb895d4494f8ac6c1c4164e, type: 2}
   awaitingFillHexMat: {fileID: 2100000, guid: fc40ba11eeb895d4494f8ac6c1c4164e, type: 2}
   hardHexMat: {fileID: 2100000, guid: c34ba5d49db9ac2419fcb327a16f6520, type: 2}
   failureMarkHexMat: {fileID: 2100000, guid: fa36b220f7d805d488416ed2ce9c29f4, type: 2}
   EnemyHexMat: {fileID: 2100000, guid: ec56a8b6baab6a145a95a8b7ca4a3a5a, type: 2}
+  BombHexMat: {fileID: 0}
   dynamicColourMat: {fileID: 2100000, guid: bfa347315ba0887429acbe2766f011cb, type: 2}
   hexColouredMaterials: []
   dynamicHexColouredMaterials: []
-  backgroundColourThreshold: 7
-  backGroundTexture: {fileID: 2800000, guid: a4de4c16a7053cf458da5254d96a575b, type: 3}
+  backgroundColourThreshold: 6
+  backGroundTexture: {fileID: 2800000, guid: 7d8b0d27ecb0532488a1c8a8bc9e95e0, type: 3}
   dynamicFailureColouredMaterials: []
   failureColourThreshold: 19
   FailureTexture: {fileID: 2800000, guid: fe439dc8c69579c4dbbcf9a9cd55bcfe, type: 3}
   useDynamicColours: 1
   percentageUIText: {fileID: 140186233}
-  winPercentage: 90
+  winPercentage: 95
 --- !u!4 &2076048978
 Transform:
   m_ObjectHideFlags: 0
@@ -9500,6 +9527,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Bomb
+      objectReference: {fileID: 0}
+    - target: {fileID: 453787135780896375, guid: 2d5a0b2d1e7a6a245b3394771d0501da,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5277916253497765593, guid: 2d5a0b2d1e7a6a245b3394771d0501da,
         type: 3}
@@ -9741,7 +9773,7 @@ PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 1733167910}
     m_Modifications:
     - target: {fileID: 116441527122656847, guid: e9bafe84177bcc34cb50ab49b690c04b,
         type: 3}
@@ -9761,17 +9793,17 @@ PrefabInstance:
     - target: {fileID: 116441527122656847, guid: e9bafe84177bcc34cb50ab49b690c04b,
         type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 116441527122656847, guid: e9bafe84177bcc34cb50ab49b690c04b,
         type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 116441527122656847, guid: e9bafe84177bcc34cb50ab49b690c04b,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 116441527122656847, guid: e9bafe84177bcc34cb50ab49b690c04b,
         type: 3}
@@ -9781,7 +9813,7 @@ PrefabInstance:
     - target: {fileID: 116441527122656847, guid: e9bafe84177bcc34cb50ab49b690c04b,
         type: 3}
       propertyPath: m_RootOrder
-      value: 20
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 116441527122656847, guid: e9bafe84177bcc34cb50ab49b690c04b,
         type: 3}
@@ -9802,6 +9834,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: EvilCubes
+      objectReference: {fileID: 0}
+    - target: {fileID: 6726140139952459851, guid: e9bafe84177bcc34cb50ab49b690c04b,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e9bafe84177bcc34cb50ab49b690c04b, type: 3}

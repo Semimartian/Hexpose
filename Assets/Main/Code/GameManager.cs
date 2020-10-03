@@ -15,6 +15,8 @@ public class GameManager : MonoBehaviour
     private static GameManager instance ;
 
     public static readonly bool ABSTRACT_PLAYER = true;//  instance.abstractPlayer;
+    public static readonly bool AIR_XONICS_RULES = true;//  instance.abstractPlayer;
+
 
     private void Awake()
     {

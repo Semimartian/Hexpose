@@ -5122,6 +5122,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rigidbody: {fileID: 6038983474459253962}
+  parentObject: {fileID: 5344509730496282331}
+  capsuleCollider: {fileID: 2851246237520091034}
   positions:
   - {fileID: 0}
   - {fileID: 0}

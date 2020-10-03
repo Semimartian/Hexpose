@@ -9,6 +9,7 @@ public class StrictRoamingEnemy : Enemy
 
     [SerializeField] private AnimationCurve speedCurve;
     [SerializeField] private float maxSpeed;
+    private const float smallDistance = 0.1f;
     //[SerializeField] private Rigidbody rigidbody;
 
     void Start()
@@ -43,15 +44,35 @@ public class StrictRoamingEnemy : Enemy
             Vector3 nextPosition = currentPosition + (direction * currentSpeed);
             rigidbody.position = (nextPosition);
 
-            if ((nextPosition - targetPosition).magnitude < 0.1f)
+
+            Vector3 difference = (nextPosition - targetPosition);
+            if ((difference).magnitude < smallDistance)
             {
-                nextPositionIndex++;
-                if (nextPositionIndex >= positions.Length)
+                ChangeDestination();
+            }
+            else
+            {
+                RaycastHit raycastHit;
+                Physics.Raycast
+                    (currentPosition + (Vector3.up*0.5f), direction, out raycastHit, 1);//TODO Clean Hardcoding
+                if(raycastHit.collider != null)
                 {
-                    nextPositionIndex = 0;
+                   // Debug.Log("Obsticles ahead!!" + raycastHit.collider.gameObject.name);
+
+                    ChangeDestination();
                 }
             }
+           
         }
 
+    }
+
+    private void ChangeDestination()
+    {
+        nextPositionIndex++;
+        if (nextPositionIndex >= positions.Length)
+        {
+            nextPositionIndex = 0;
+        }
     }
 }

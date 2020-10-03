@@ -6,6 +6,16 @@ using UnityEngine.UI;
 
 public class AbstractHexPainter : MonoBehaviour
 {
+    public enum PaintMode
+    {
+        EnemiesLocked, EnemiesKilled, EnemiesNeutralised
+    }
+    public static PaintMode paintMode
+    {
+        private set;
+        get;
+    }
+
     private List<Vector3> positions = new List<Vector3>();
     private Vector3 previousPosition;
     [SerializeField] private SphereCollider overlapSphereCollider;
@@ -32,6 +42,7 @@ public class AbstractHexPainter : MonoBehaviour
             return;
         }
 
+        paintMode = PaintMode.EnemiesLocked;
     }
 
     private Vector3 MouseToGroundPlane(Vector3 mousePosition)
@@ -91,6 +102,10 @@ public class AbstractHexPainter : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (GameManager.GameOver)
+        {
+            return;
+        }
         //TODO: compare interpolation to cake party's
         Vector3 currentMouseGroundPosition = MouseToGroundPlane(Input.mousePosition);
 
@@ -125,6 +140,7 @@ public class AbstractHexPainter : MonoBehaviour
         }
         else
         {
+           // Debug.Log("Mouse button unpressed");
             previousMouseGroundPosition = null;
         }
 
@@ -151,46 +167,77 @@ public class AbstractHexPainter : MonoBehaviour
                 }
             }
         }*/
-
     }
-
+     
     public void FloorCheck(List<Vector3> positions,int currentPositionIndex)
     {
         bool changed = false;
 
         int count = positions.Count;
-        Debug.Log("positions to check: " + count);
+        //Debug.Log("positions to check: " + count);
         overlapSphereCollider.transform.position = positions[count-1];
         for (int j = 0; j< count; j++)
         {
-            Collider[] overlappingColliders =
-               Physics.OverlapSphere(positions[j], overlapSphereCollider.radius);
+            Vector3 top = positions[j] ;
+            Vector3 bottom = positions[j] + new Vector3(0, -3, 0);
+
+            Collider[] overlappingColliders =Physics.OverlapCapsule
+                (bottom, top, overlapSphereCollider.radius);
+
+            //Debug.Log("positions[j]: " + positions[j]);
+           // Debug.Log("overlapSphereCollider.radius: " + overlapSphereCollider.radius);
+
+            //Debug.Log("overlappingColliders.Length: " + overlappingColliders.Length);
             for (int i = 0; i < overlappingColliders.Length; i++)
             {
                 Transform t = overlappingColliders[i].transform;
-                if (t.parent != null)
+                //if (t.parent != null)
                 {
 
-                    Hex hex = t.parent.GetComponent<Hex>();
+                    Hex hex = t/*.parent*/.GetComponent<Hex>();
                     if (hex != null)
                     {
-
+                        
                         HexStates hexState = hex.State;
-                        switch (hexState)
+                        if(hexState!= HexStates.Full)//TODO: I dont like the full/enemy deal here
                         {
-                            /* case HexStates.AwaitingFill:
-                                 isOnAPotentialWall = true; break;*/
-                            /*case HexStates.Full:
-                                Collide(); break;*/
-                            case HexStates.Empty:
-                                {
-                                    hex.ChangeState(HexStates.PotentiallyFull);
-                                    changed = true;
-                                }
-                                break;
+                            if (hex.Specialty == HexSpecialties.Enemy)
+                            {
+                                Debug.Log("An enemy is touching a sensitive hexagon...");
+                                HexMap.InfectPlayerPath(hex);
+                                return;
+                            }
 
+
+                            switch (hexState)
+                            {
+                                /* case HexStates.AwaitingFill:
+                                     isOnAPotentialWall = true; break;*/
+                                /*case HexStates.Full:
+                                    Collide(); break;*/
+                                case HexStates.Empty:
+                                    {
+                                        hex.ChangeState(HexStates.Path);
+                                        changed = true;
+                                    }
+                                    break;
+
+                            }
+
+                            Vector3 hexPosition = hex.transform.position;
+                            hexPosition.y = Hex.HEX_PRESSED_Y;
+                            hex.transform.position = hexPosition;
                         }
+                       
 
+                    }
+                    else
+                    {
+                        HexBomb bomb = t/*.parent*/.GetComponent<HexBomb>();
+                        if (bomb != null)
+                        {
+                            bomb.Explode();
+                        }
                     }
                 }
             }
@@ -198,11 +245,11 @@ public class AbstractHexPainter : MonoBehaviour
        
         if (changed)
         {
+            SoundManager.PlayOneShotSoundAt(SoundNames.HexPressed, positions[currentPositionIndex]);// t.position);
 
             if (HexMap.CalculateFill())
             {
-                SoundNames soundName = SoundNames.AllGlocken;// hardCollision ? SoundNames.LowGlocken : SoundNames.AllGlocken;
-                SoundManager.PlayOneShotSoundAt(soundName, positions[currentPositionIndex]);
+                SoundManager.PlayOneShotSoundAt(SoundNames.AllGlocken, positions[currentPositionIndex]);
             }
         }
     }

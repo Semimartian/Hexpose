@@ -167,10 +167,10 @@ public class BallHexPainter : MonoBehaviour
         for (int i = 0; i < overlappingColliders.Length; i++)
         {
             Transform t = overlappingColliders[i].transform;
-            if (t.parent != null)
+           // if (t.parent != null)
             {
 
-                Hex hex = t.parent.GetComponent<Hex>();
+                Hex hex = t/*.parent*/.GetComponent<Hex>();
                 if (hex != null)
                 {
 
@@ -185,7 +185,7 @@ public class BallHexPainter : MonoBehaviour
 
                             if(hex.Specialty != HexSpecialties.Enemy)
                             {
-                                hex.ChangeState(HexStates.PotentiallyFull);
+                                hex.ChangeState(HexStates.Path);
                             }
                             break;
                        /*case HexStates.Hard:
@@ -214,7 +214,7 @@ public class BallHexPainter : MonoBehaviour
         }
         else if (collision.collider.transform.parent != null)
         {
-            Hex hex = collision.collider.transform.parent.GetComponent<Hex>();
+            Hex hex = collision.collider.transform/*.parent*/.GetComponent<Hex>();
             if (hex != null)
             {
                 bool playBounceAnimation = false;

@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 public enum SoundNames:byte
 {
-    AllGlocken, WallHit, GroundUp,BallSent, LowGlocken
+    AllGlocken, WallHit, GroundUp,BallSent, LowGlocken,
+    WinChord, LoseChord, EnemyDeath, HexPressed, BombActivation, PathInfected
 }
 [Serializable]
 public class CorrectedSoundClip
@@ -90,7 +91,7 @@ public class SoundManager : MonoBehaviour
         }
         if (clip == null)
         {
-            Debug.LogError("NO SOUND FOUND!");
+            Debug.LogError("NO SOUND FOUND: "+ name.ToString());
         }
         else
         {

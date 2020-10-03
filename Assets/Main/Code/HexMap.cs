@@ -6,24 +6,31 @@ public class HexMap : MonoBehaviour
 {
     private static Hex[,] hexes;
     private static Hex[] realHexes;
-    public readonly static byte numberOfRows = 200;
-    public readonly static byte numberOfColumns = 200;
+    private static List<Transform> lowHexesTransforms;
+
+    public readonly static byte numberOfRows = 220;
+    public readonly static byte numberOfColumns = 220;
     private static bool mapWasGenerated;
     [SerializeField] private Collider mapZone;
     //[SerializeField] private CombineableMesh combineableMeshPreFab;
     [SerializeField] private Hex hexPreFab;
     [SerializeField] private HexBomb hexBombPreFab;
+    [SerializeField] private bool generateRandomThings = false;
+
     [SerializeField] private int bombGenerationChance = 32;
     [SerializeField] private int hardHexGenerationChance = 14;
     [SerializeField] private int enemyHexGenerationChance;
 
     [Header("Materials:")]
-    public Material emptyHexMat;
+    [SerializeField] private Material[] emptyHexMats;
+
     public Material highLightedHexMat;
     public Material awaitingFillHexMat;
     public Material hardHexMat;
     public Material failureMarkHexMat;
     public Material EnemyHexMat;
+    public Material BombHexMat;
+
 
     [SerializeField] private Material dynamicColourMat;
 
@@ -31,8 +38,6 @@ public class HexMap : MonoBehaviour
     [SerializeField] private List<Material> dynamicHexColouredMaterials = new List<Material>();
     [SerializeField] private float backgroundColourThreshold = 8f;
     [SerializeField] private Texture2D backGroundTexture;
-
-
 
     [SerializeField] private List<Material> dynamicFailureColouredMaterials = new List<Material>();
     [SerializeField] private float failureColourThreshold = 16f;
@@ -57,6 +62,7 @@ public class HexMap : MonoBehaviour
         GenerateMap();
         UpdateFullPercentage();
 
+        enemies = FindObjectsOfType<Enemy>();
     }
 
     public static Hex GetHex(int q, int r)
@@ -117,6 +123,12 @@ public class HexMap : MonoBehaviour
 
     }
 
+    public Material GetEmptyHexMaterial()
+    {
+        int index = Random.Range(0, emptyHexMats.Length);
+        return emptyHexMats[index];
+    }
+
     public Material GetFailureColouredMaterial(byte index)
     {
          return dynamicFailureColouredMaterials[index];
@@ -132,8 +144,12 @@ public class HexMap : MonoBehaviour
         mapCentre = mapZone.transform.position;
         hexes = new Hex[numberOfColumns, numberOfRows];
 
+        Transform myTransform = transform;
+
         Bounds zoneBounds = mapZone.bounds;
         List<Hex> realHexesList = new List<Hex>(32);
+       lowHexesTransforms= new List<Transform>(32);
+
         Wall[] walls = FindObjectsOfType<Wall>();
         
         for (int column = 0; column < numberOfColumns; column++)
@@ -197,7 +213,7 @@ public class HexMap : MonoBehaviour
                               Material mat = new Material(dynamicColourMat);
                               mat.color = bestColour;
                               dynamicFailureColouredMaterials.Add(mat);
-                            bestFailureMatIndex = (byte)(dynamicFailureColouredMaterials.Count - 1);
+                               bestFailureMatIndex = (byte)(dynamicFailureColouredMaterials.Count - 1);
                           }
                           else
                           {
@@ -206,17 +222,17 @@ public class HexMap : MonoBehaviour
                     }
 
                     Hex hex = Instantiate(hexPreFab);
+                    hex.transform.parent = myTransform;
                     hex.Construct(bestMatIndex, bestFailureMatIndex);
                     hex.transform.position = hexPosition;
-                    hexes[column, row] = hex;
-                    realHexesList.Add(hex);
+
 
                     if (modifiedType != HexTypes.Floor)
                     {
                         hex.ModifyType(modifiedType);
                        
                     }
-                    else
+                    else if (generateRandomThings)
                     {
                         if (Random.Range(0, bombGenerationChance) == 0)
                         {
@@ -238,37 +254,52 @@ public class HexMap : MonoBehaviour
                         }
                     }
 
+                    hexes[column, row] = hex;
+                    realHexesList.Add(hex);
+
+                    if(hex.State == HexStates.Empty && hex.Specialty == HexSpecialties.None)
+                    {
+                        lowHexesTransforms.Add(hex.transform);
+
+                    }
+
                 }
 
                 //Material hexMaterial = GetMaterialForHex(hex);
                 //hexComponent.GetComponentInChildren<MeshRenderer>().material = hexMaterial;
                 //hexComponent.SetHex(hex);
-               /* if (hexComponent.GetComponentInChildren<TMPro.TextMeshPro>())
-                {
-                    hexComponent.GetComponentInChildren<TMPro.TextMeshPro>().text = column + "," + row;
-                }*/
-               // if(column == 0 && row == 0)
-               /* {
-                    GameObject hexModel = Instantiate(hexModelPreFab, hex.PositionInWorld(), Quaternion.identity);
-                    hexModel.transform.parent = transform;
-                }*/
+                /* if (hexComponent.GetComponentInChildren<TMPro.TextMeshPro>())
+                 {
+                     hexComponent.GetComponentInChildren<TMPro.TextMeshPro>().text = column + "," + row;
+                 }*/
+                // if(column == 0 && row == 0)
+                /* {
+                     GameObject hexModel = Instantiate(hexModelPreFab, hex.PositionInWorld(), Quaternion.identity);
+                     hexModel.transform.parent = transform;
+                 }*/
 
                 //  hexComponent.GetComponentInChildren<TMPro.TextMeshPro>().enabled=false;
 
             }
         }
+
+        //Nesssary stuff
         for (int column = 0; column < numberOfColumns; column++)
         {
             for (int row = 0; row < numberOfRows; row++)
             {
                 if(hexes[column, row] != null)
                 {
-                    hexes[column, row].SetNeighbours(column, row);
+                    Hex hex = hexes[column, row];
+                    hex.SetNeighbours(column, row);
+                    /*bool isFillable = (hex.State == HexStates.Empty);
+                    hex.fillMark = isFillable ? UNFILLED : FILLED;*/
                 }
             }
         }
-
+        //FloodFillMapIsClear = true;
         realHexes = realHexesList.ToArray();
+
         Debug.Log("Hexes Count: " + realHexes.Length);
         for (int i = 0; i < walls.Length; i++)
         {
@@ -290,9 +321,33 @@ public class HexMap : MonoBehaviour
             mildClimateHexMeshes[i].CombineMeshes(mildClimateMaterials[i]);
         }*/
         #endregion
+
+        HexBomb[] bombs = FindObjectsOfType<HexBomb>();
+        for (int i = 0; i < bombs.Length; i++)
+        {
+            HexBomb bomb = bombs[i];
+            Vector3 bombPosition = bomb.transform.position;
+            Hex hexAtPosition = GetHex(  Hex.GetHexCoordinates(bombPosition));
+            if(hexAtPosition != null)
+            {
+                bomb.transform.position = new Vector3
+                    (hexAtPosition.transform.position.x, bombPosition.y, hexAtPosition.transform.position.z);
+                bomb.hex = hexAtPosition;
+                //TODO: not elegant at allllkl
+            }
+
+        }
+
         mapWasGenerated = true;
 
     }
+
+    public static void RemoveLowHexTransform(Transform t)
+    {
+        lowHexesTransforms.Remove(t);
+    }
+
+    #region Scenes:
 
     public static void PlayLoseScene(Hex origin)
     {
@@ -354,9 +409,9 @@ public class HexMap : MonoBehaviour
         instance.StartCoroutine(instance.InfectPlayerPathCoRoutine(origin));
     }
 
-
     private IEnumerator InfectPlayerPathCoRoutine(Hex origin)
     {
+        SoundManager.PlayOneShotSoundAt(SoundNames.PathInfected, origin.transform.position);
         //ClearFloodFillMap();
         float waitTime = 0.025f;
         List<Hex> hexesInRange = new List<Hex>(16);
@@ -376,7 +431,7 @@ public class HexMap : MonoBehaviour
                 {
                     Hex neighbour = neighbours[n];
 
-                    if (neighbour.State == HexStates.PotentiallyFull)// || neighbour.State == HexStates.PotentiallyFull )
+                    if (neighbour.State == HexStates.Path)// || neighbour.State == HexStates.PotentiallyFull )
                     {
                         neighbour.ChangeState(HexStates.MarkedForFailure);
                         hexesInRange.Add(neighbour);
@@ -389,6 +444,8 @@ public class HexMap : MonoBehaviour
         yield return new WaitForSeconds(0.6f);
 
         waitTime = 0.035f;
+        SoundManager.PlayOneShotSoundAt(SoundNames.LoseChord, Camera.main.transform.position);
+
         newHexesFound = true;
         while (newHexesFound)
         {
@@ -413,8 +470,8 @@ public class HexMap : MonoBehaviour
             }
         }
 
-        yield return new WaitForSeconds(0.2f);
 
+        yield return new WaitForSeconds(0.2f);
         for (int i = 0; i < realHexes.Length; i++)
         {
             realHexes[i].ChangeState(HexStates.FullOfFailure);
@@ -428,6 +485,7 @@ public class HexMap : MonoBehaviour
         }
 
     }
+
     public static void PlayWinScene()
     {
         instance.StartCoroutine(instance.PlayWinSceneCoRoutine());
@@ -436,6 +494,8 @@ public class HexMap : MonoBehaviour
 
     private IEnumerator PlayWinSceneCoRoutine()
     {
+        SoundManager.PlayOneShotSoundAt(SoundNames.WinChord, Camera.main.transform.position,0.2f);
+
         yield return new WaitForSeconds(2.5f);
 
         for (int i = 0; i < realHexes.Length; i++)
@@ -443,17 +503,23 @@ public class HexMap : MonoBehaviour
             realHexes[i].WinFill();
         }
 
-
-        Enemy[] enemies = FindObjectsOfType<Enemy>();
+ 
         for (int i = 0; i < enemies.Length; i++)
         {
-            Destroy(enemies[i].gameObject);
+            enemies[i].CheckForDeathFromBelow(true);
         }
-        Destroy(FindObjectOfType<BallHexPainter>().gameObject);
+        BallHexPainter ballHexPainter = FindObjectOfType<BallHexPainter>();
+        if (ballHexPainter != null)
+        {
+            Destroy(ballHexPainter.gameObject);
+
+        }
 
         yield return null;
 
     }
+
+    #endregion
     #region Hex Material Finding:
 
     private Color32 GetBackgroundColourFromBounds(Vector3 point, Bounds bounds,Texture2D texture)
@@ -579,62 +645,111 @@ public class HexMap : MonoBehaviour
             CalculateFill();
         }*/
 
-        if (awaitingFill &&  
+        if (awaitingFill &&  !GameManager.GameOver&&
             (GameManager.ABSTRACT_PLAYER || !BallHexPainter.isOnAPotentialWall))
         {
             Debug.Log("Complete Fill," + "isOnAPotentialWall:"+ BallHexPainter.isOnAPotentialWall);
             CompleteFill();
             awaitingFill = false;
         }
+
+        if (GameManager.ABSTRACT_PLAYER)
+        {
+            ManagePressedHexes(Time.deltaTime);
+
+        }
+
     }
+
+    private static void ManagePressedHexes(float deltaTime)
+    {
+        float riseIncrement = deltaTime * Hex.PRESSED_RISE_PER_SECOND;
+        Vector3 hexPosition;
+        foreach (Transform t in lowHexesTransforms)
+        {
+            hexPosition = t.position;
+
+            if (hexPosition.y < Hex.HEX_LOW_Y)
+            {
+                /*if (hexPosition.y == Hex.HEX_PRESSED_Y)
+                {
+                    Debug.Log("hexPosition.y == Hex.HEX_PRESSED_Y)");
+                    hexPosition.y += (riseIncrement/10);
+
+                }
+                else*/
+                {
+                    hexPosition.y += riseIncrement;
+                    if (hexPosition.y > Hex.HEX_LOW_Y)
+                    {
+                        hexPosition.y = Hex.HEX_LOW_Y;
+                    }
+                }
+                
+                t.position = hexPosition;
+            }
+        }
+    }
+
     #region Flood Fill:
     private const sbyte FILLED = -1;
     private const sbyte UNFILLED = -2;
     private static List<Hex> fills = new List<Hex>();
     private static List<Hex> fillsNext = new List<Hex>();
 
-    public struct FillUnit
-    {
-        public byte q;
-        public byte r;
-
-        public FillUnit(byte q, byte r)
-        {
-            this.q = q;
-            this.r = r;
-        }
-    }
-
+    private static bool FloodFillMapIsClear = false;
     private static void ClearFloodFillMap()
     {
         for (int i = 0; i < realHexes.Length; i++)
         {
             Hex hex = realHexes[i];
             bool isFillable = (hex.State == HexStates.Empty);
-            hex.fillMark =isFillable ? UNFILLED : FILLED;
-        }  
+            hex.fillMark = isFillable ? UNFILLED : FILLED;
+        }
+        FloodFillMapIsClear = true;
     }
 
-    private static List<int> floodFillSlicesSizes = new List<int>();
+    private struct FloodFillSliceInfo
+    {
+        public ushort size;
+        public bool isLegit;
+    }
+
+    //private static List<int> floodFillSlicesSizes = new List<int>();
+    private static List<FloodFillSliceInfo> floodFillInfoList = new List<FloodFillSliceInfo>();
 
     private static bool awaitingFill = false;
     private static int frameCount=0;
 
     public static bool CalculateFill()
     {
-       if( Time.frameCount == frameCount)
+       if( Time.frameCount == frameCount || GameManager.GameOver)
        {
             return false;
        }
+
         frameCount = Time.frameCount;
         Debug.Log("CalculateFill");
-        ClearFloodFillMap();
 
+        ClearFloodFillMap();
+        if (!FloodFillMapIsClear)
+        {
+            Debug.LogError("Flood Fill Map must be clear before CalculateFill is called!");
+            return false;
+        }
+        FloodFillMapIsClear = false;
+
+
+        bool killEnemies = (!GameManager.ABSTRACT_PLAYER) ||
+            (AbstractHexPainter.paintMode == AbstractHexPainter.PaintMode.EnemiesKilled);
+        //Debug.Log("killEnemies " + killEnemies);
         sbyte currentID = -1;
 
         fills.Clear();
         fillsNext.Clear();
-        floodFillSlicesSizes.Clear();
+        floodFillInfoList.Clear();
+
+        //List<sbyte> legitIndexes = new List<sbyte>();
 
         for (int i = 0; i < realHexes.Length; i++)
         {
@@ -642,82 +757,176 @@ public class HexMap : MonoBehaviour
             if (hex.fillMark == UNFILLED)
             {
                 currentID += 1;
-                floodFillSlicesSizes.Add(0);
+                //floodFillSlicesSizes.Add(0);
+                //floodFillInfoList.Add(new FloodFillSliceInfo { size = 0, isLegit = true });
+                //legitIndexes.Add(currentID);
 
                 hex.fillMark = currentID;
                 fills.Add(hex);
-            }
 
-            while (fills.Count > 0)
-            {
-                // yield return new WaitForSeconds(0.004f);
-                //loopCount += 1;
-                foreach (Hex fill in fills)
+
+                int size = 0;
+                bool indexIsLegit = true;
+                bool pathFound = false;
+
+                while (fills.Count > 0)
                 {
-                    // yield return new WaitForSeconds(0.002f);
-                    Hex[] neighbours = fill.GetNeighbours();
-                    Hex neighbour;
-                    for (int j = 0; j < neighbours.Length; j++)
+                    // yield return new WaitForSeconds(0.004f);
+                    foreach (Hex fill in fills)
                     {
-                        neighbour = neighbours[j];
-                        if (neighbour.fillMark == UNFILLED)
+                        // yield return new WaitForSeconds(0.002f);
+                        Hex[] neighbours = fill.GetNeighbours();
+                        Hex neighbour;
+                        for (int j = 0; j < neighbours.Length; j++)
                         {
-                            neighbour.fillMark = currentID;
-                            fillsNext.Add(neighbour);
+                            neighbour = neighbours[j];
+                            if(neighbour.State == HexStates.Path)
+                            {
+                                pathFound = true;//TODO: just start the filling procces out of paths matybe??
+                            }
+                            else if (neighbour.fillMark == UNFILLED)
+                            {
+                                neighbour.fillMark = currentID;
+                                fillsNext.Add(neighbour);
+
+                                if (!killEnemies && neighbour.Specialty == HexSpecialties.Enemy)
+                                {
+                                    indexIsLegit = false;
+                                }
+                            }
                         }
+
+                        size++;
                     }
 
-                    floodFillSlicesSizes[currentID] += 1;
-
+                    List<Hex> swap = fills;
+                    swap.Clear();
+                    fills = fillsNext;
+                    fillsNext = swap;
                 }
 
-                List<Hex> swap = fills;
-                swap.Clear();
-                fills = fillsNext;
-                fillsNext = swap;
+                if (!pathFound)
+                {
+                    indexIsLegit = false;
+                }
+                floodFillInfoList.Add(new FloodFillSliceInfo
+                {
+                    size = (ushort)size,
+                    isLegit = indexIsLegit
+                });
             }
+
+            
         }
 
-        if (floodFillSlicesSizes.Count < 2)
+        if (floodFillInfoList.Count < 2)
         {
             int סבא = 7;
-           
+
             //Debug.Log("Number of slices has to be greater than 1 in order to fill the area");
+           // ClearFloodFillMap();
             return false;
         }
         else
         {
+            int floodFillInfoListCount = floodFillInfoList.Count;
             
-            sbyte largestSliceID = 0;
-            int largestSizeSoFar = 0;
-            for (sbyte i = 0; i < floodFillSlicesSizes.Count; i++)
-            {
-                if (floodFillSlicesSizes[i] > largestSizeSoFar)
-                {
-                    largestSliceID = i;
-                    largestSizeSoFar = floodFillSlicesSizes[i];
-                }
-            }
 
-            //List<Hex> hexesToFill = new List<Hex>();
-
-            if (GameManager.ABSTRACT_PLAYER)
+            if (!killEnemies)
             {
-                for (int i = 0; i < realHexes.Length; i++)
+                for (int i = 0; i < enemies.Length; i++)
                 {
-                    Hex hex = realHexes[i];
-                    sbyte fillMark = hex.fillMark;
-                    if (hex.State != HexStates.PotentiallyFull &&
-                       (fillMark >= 0 && fillMark != largestSliceID))
+                    Enemy enemy = enemies[i];
+                    if (enemy.IsAlive && enemy.IsInterruptingFill)
                     {
-                        hex.ChangeState(HexStates.AwaitingFill);
-                        //hexesToFill.Add(hex);
+                        List<Hex> hexesBelow = enemy.GetHexesBelow();
+                        int hexesCount = hexesBelow.Count;
+                        for (int j = 0; j < hexesCount; j++)
+                        {
+                            sbyte mark = hexesBelow[j].fillMark;
+                            for (sbyte n = 0; n < floodFillInfoListCount; n++)
+                            {
+                                if (n == mark)
+                                {
+                                    floodFillInfoList[n] = new FloodFillSliceInfo
+                                    {
+                                        size = floodFillInfoList[n].size,
+                                        isLegit = false
+                                    };
+                                }
+                            }
+                        }
                     }
                 }
             }
             else
             {
+                sbyte largestSliceID = 0;
+                int largestSizeSoFar = 0;
+
+                for (sbyte i = 0; i < floodFillInfoListCount; i++)
+                {
+                    if (floodFillInfoList[i].size > largestSizeSoFar)
+                    {
+                        largestSliceID = i;
+                        largestSizeSoFar = floodFillInfoList[i].size;
+                    }
+                }
+                Debug.Log
+                    ("largestSliceID " + largestSliceID +
+                    "floodFillInfoList.Count" + floodFillInfoListCount);
+
+                floodFillInfoList[largestSliceID] = new FloodFillSliceInfo
+                {
+                    size = floodFillInfoList[largestSliceID].size,
+                    isLegit = false
+                };
+            }
+
+
+
+            List<sbyte> legitIndexes = new List<sbyte>();
+            for (sbyte i = 0; i < floodFillInfoList.Count; i++)
+            {
+                if (floodFillInfoList[i].isLegit)
+                {
+                    legitIndexes.Add(i);
+                }
+            }
+
+            int legitIndexesCount = legitIndexes.Count;
+
+            if (legitIndexesCount <= 0)
+            {
+               // ClearFloodFillMap();
+                return false;
+            }
+            else if (GameManager.ABSTRACT_PLAYER)
+            {
+                Hex hex;
                 for (int i = 0; i < realHexes.Length; i++)
+                {
+                    hex = realHexes[i];
+                    for (int j = 0; j < legitIndexesCount; j++)//TODO: use some bitwise action instead
+                    {
+                        if (hex.fillMark == legitIndexes[j] && hex.State != HexStates.Path)//TODO:Why the second condition!
+                        {
+                            hex.ChangeState(HexStates.AwaitingFill);
+                            break;
+                        }
+                    }
+                   
+                    /*//Clearing the map:
+                    bool isFillable = (hex.State == HexStates.Empty);
+                    hex.fillMark = isFillable ? UNFILLED : FILLED;*/
+                }
+                //FloodFillMapIsClear = true;
+                
+            }
+            else
+            {
+                Debug.LogError("FIX BALL RULES");
+               /* for (int i = 0; i < realHexes.Length; i++)
                 {
                     Hex hex = realHexes[i];
                     sbyte fillMark = hex.fillMark;
@@ -727,7 +936,7 @@ public class HexMap : MonoBehaviour
                         hex.ChangeState(HexStates.AwaitingFill);
                         //hexesToFill.Add(hex);
                     }
-                }
+                }*/
 
                 AwaitFillIn(0.45f);
             }
@@ -755,6 +964,7 @@ public class HexMap : MonoBehaviour
         awaitingFill = true;
         if (!GameManager.ABSTRACT_PLAYER)
         {
+           // Debug.Log("BallHexPainter==null" +BallHexPainter.instance == null);
             BallHexPainter.instance.FloorCheck();
         }
 
@@ -769,14 +979,16 @@ public class HexMap : MonoBehaviour
         {
             Hex hex = realHexes[i];
             if (hex.State == HexStates.AwaitingFill ||
-                (abstractPlayer&& hex.State == HexStates.PotentiallyFull))
+                (abstractPlayer&& hex.State == HexStates.Path))
             {
                 playSound = true;
                 hex.ChangeState(HexStates.Full);
                 //TODO: Find a more efficient method of findingThe enemies
-                hex.KillEnemiesOnTop();
+                //hex.KillEnemiesOnTop();
             }
         }
+
+        KillEnemiesOnTopOfFullHexes();
 
         if (playSound)
         {
@@ -794,7 +1006,14 @@ public class HexMap : MonoBehaviour
         }
     }
 
-
+    private static Enemy[] enemies;
+    private static void KillEnemiesOnTopOfFullHexes()
+    {
+        for (int i = 0; i < enemies.Length; i++)
+        {
+            enemies[i].CheckForDeathFromBelow(false);
+        }
+    }
 
     #endregion
 
@@ -804,6 +1023,7 @@ public class HexMap : MonoBehaviour
     [SerializeField] private float winPercentage = 80;
     private static void UpdateFullPercentage()
     {
+        //TODO: Make an efficient method for this. add new full hexes to some global var
         int fullHexes = 0;
         int hexCount = realHexes.Length;
         for (int i = 0; i < hexCount; i++)
@@ -823,6 +1043,9 @@ public class HexMap : MonoBehaviour
 
     }
 
+
+    #region Explosion:
+
     public static void PrepareHexExplosion(Hex origin)
     {
         instance.StartCoroutine(instance.PrepareHexExplosionCoroutine(origin));
@@ -830,13 +1053,46 @@ public class HexMap : MonoBehaviour
 
     private IEnumerator PrepareHexExplosionCoroutine(Hex origin)
     {
+        SoundManager.PlayOneShotSoundAt(SoundNames.BombActivation, origin.transform.position);
+        HexStates statePostExplosion = HexStates.Full;
         int range = 4;
         float waitTime = 0.15f;
         List<Hex> hexesInRange = new List<Hex>(6);
         hexesInRange.Add(origin);
-        if (origin.State == HexStates.Empty)
+
+
+        if (origin.State != statePostExplosion)
         {
-            origin.ChangeState(HexStates.PotentiallyFull);
+            origin.ChangeState(HexStates.Bombed);
+
+        }
+        for (int i = 0; i < range; i++)
+        {
+            int count = hexesInRange.Count;
+            for (int j = 0; j < count; j++)
+            {
+
+                Hex[] neighbours = hexesInRange[j].GetNeighbours();
+                for (int n = 0; n < neighbours.Length; n++)
+                {
+                    Hex neighbour = neighbours[n];
+                    //30.9 if (neighbour.State == HexStates.Empty)// || neighbour.State == HexStates.PotentiallyFull )
+                    if (neighbour.State != statePostExplosion && neighbour.State != HexStates.Bombed)
+                    {
+                        neighbour.ChangeState(HexStates.Bombed);
+                    }
+                    hexesInRange.Add(neighbour);
+
+                }
+            }
+        }
+        //ANNNND Again
+        hexesInRange.Clear();
+        hexesInRange.Add(origin);
+
+        if (origin.State != statePostExplosion)
+        {
+            origin.ChangeState(statePostExplosion);
 
         }
         for (int i = 0; i < range; i++)
@@ -850,15 +1106,26 @@ public class HexMap : MonoBehaviour
                 for (int n = 0; n < neighbours.Length; n++)
                 {
                     Hex neighbour = neighbours[n];
-                    if (neighbour.State == HexStates.Empty)// || neighbour.State == HexStates.PotentiallyFull )
+                    //30.9 if (neighbour.State == HexStates.Empty)// || neighbour.State == HexStates.PotentiallyFull )
+                    if (neighbour.State != statePostExplosion)
                     {
-                        neighbour.ChangeState(HexStates.PotentiallyFull);
+                        neighbour.ChangeState(statePostExplosion);
                     }
                     hexesInRange.Add(neighbour);
 
                 }
+                if (HexMap.CalculateFill())
+                {
+                    SoundManager.PlayOneShotSoundAt(SoundNames.AllGlocken, origin.transform.position);
+                }
+                KillEnemiesOnTopOfFullHexes();
             }
         }
+
+        UpdateFullPercentage();
+
         //awaitingFill = true;
     }
+
+    #endregion
 }

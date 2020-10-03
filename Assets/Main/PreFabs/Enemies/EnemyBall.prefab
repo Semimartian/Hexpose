@@ -209,6 +209,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rigidbody: {fileID: 4746611749090392790}
+  parentObject: {fileID: 4746611749090392789}
+  capsuleCollider: {fileID: 4746611749090392791}
   force: 8
   animator: {fileID: 4746611749009739851}
   collisionParticles: {fileID: 4746611749704186521}
